@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# 环境与密钥
+.env
+*.pem
+token.txt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 运行产物
+*.log
+instance/
