@@ -1,6 +1,6 @@
 ---
 title: 校园共享器材 / 图书借阅系统
-status: draft
+status: final
 created: 2026-11-08
 updated: 2026-11-08
 ---
