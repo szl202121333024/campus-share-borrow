@@ -71,7 +71,9 @@ AI 写 PRD 时最容易犯的四个毛病，逐条对应一句台词。
 
 > **我否决"先查后写"。**
 > 两个人同时查，都会看到"可借"，然后都执行 UPDATE，结果两个人都借成功——这就是超卖，直接违反 NFR-1。
-> **必须用数据库唯一索引兜底**：在借阅表上建 `UNIQUE(user_id, item_id)` 且仅对未归还记录生效（或用 `status='borrowed'` 的部分唯一索引），让**数据库**拒绝第二个写入；代码捕获 `IntegrityError` 后返回 409「该物品已被借走」。
+> **必须用数据库唯一索引兜底**：在借阅表上建**部分唯一索引** `CREATE UNIQUE INDEX ux_loans_active_item ON loans(item_id) WHERE returned_at IS NULL` —— 列是 **`item_id` 单列**（不是 `(user_id, item_id)`），条件只作用于未归还记录，让**数据库**拒绝第二个写入；代码捕获 `IntegrityError` 后返回 409「该物品已被借走」。
+>
+> > 📌 **原手册错误，经架构阶段验证修正（D-018）**：初版写的是 `UNIQUE(user_id, item_id)`，两处错——① 它只约束「同一人不能重复持有同一物品」，**两个不同用户仍可同时借走同一件**，防不住超卖，直接违反 NFR-1.1；② 不带 `WHERE` 会让已归还的历史记录永久占用组合键，导致归还后再也借不了同一件，违反 FR-3。修正后为 `item_id` 上的部分唯一索引。详见 `_bmad-output/planning-artifacts/architecture/adr-campus-share-borrow-2026-11-08/ADR-002-concurrency-uniqueness.md`。
 > 记 **ADR-002**：决定 = 唯一索引兜底（防物品超卖）+ `BEGIN IMMEDIATE` 写事务（防额度并发越限）+ 捕获 `IntegrityError` 返回 409；否决的备选 = 仅靠应用层 `SELECT` 检查、或单纯用写锁代替唯一索引来充当唯一性裁决者；理由 = 唯一索引是物理底线的最后一道闸，写事务是业务校验的原子保证，两者分工明确、缺一不可。
 
 ### 驳点 2-3 ~ 2-5：另外三条 ADR 的候选靶子
