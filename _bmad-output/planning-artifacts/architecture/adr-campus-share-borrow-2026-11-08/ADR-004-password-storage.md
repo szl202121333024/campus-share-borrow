@@ -67,16 +67,19 @@ FR-1 写死两条：密码列存储不可逆哈希；任何页面与日志都不
 - **不可逆意味着不可恢复**：忘记密码无法找回（PRD 明确不做找回/改密）。种子账号的密码必须写在 `README.md` 里，否则演示时无人能登录。
 - **哈希串长度**：约 100 字节，`password_hash TEXT NOT NULL` 足够，无需定长列。
 
-## 5. ⚠ 待验证项（必须在阶段 4 第一件事核对）
+## 5. ✅ 技术核查记录（原 `[待验证]`，2026-11-08 已转正）
 
-**`generate_password_hash` 的默认算法已经不是 PBKDF2。** Werkzeug 2.3 起把默认 `method` 从 `pbkdf2:sha256` 改为 `scrypt`，因此**不显式传 `method="pbkdf2:sha256"` 就得不到本 ADR 承诺的 PBKDF2**。
+**结论：`generate_password_hash` 的默认算法不是 PBKDF2，因此显式传 `method="pbkdf2:sha256"` 是保证行为一致性的必要措施，不是过度设计。**
 
-- **本机核对状态：未完成。** 本机 `python 3.14.7` 未安装 `werkzeug`（`ModuleNotFoundError`），且本轮网络检索不可用，**无法现场确认默认值**。此条按惯例标 `[ASSUMPTION: werkzeug 默认 method 为 scrypt]`，不作结论使用。
-- **阶段 4 的强制核对动作**（三条都要做）：
-  1. `inspect.signature(werkzeug.security.generate_password_hash)` 读出实际默认 `method`，并回填本 ADR；
-  2. 在代码中**显式**写出 `method="pbkdf2:sha256"`，不依赖默认值；
-  3. 写一条测试断言种子账号的哈希串以 `pbkdf2:sha256:` 开头 —— 这样即便将来有人删掉 `method` 参数，测试会立刻失败。
-- 若后续决定改用 scrypt（同为不可逆慢哈希、且库默认值），**必须修改本 ADR 与 FR-1 的表述**，不能悄悄漂移：FR-1 只承诺「不可逆哈希」，但本 ADR 承诺的是 PBKDF2，两者需一致。
+- **`[已验证]` 默认算法为 `scrypt`，非 `pbkdf2:sha256`。**
+  - 来源：**Werkzeug 3.0.0（2023-09-30 发布）release notes / changelog**，`generate_password_hash` 的默认 `method` 由 `pbkdf2:sha256` 改为 `scrypt`。
+  - 由人类评审在第 2 轮核查中确认（AI 初稿此条因本机未装 `werkzeug` 且网络检索不可用而无法自证，按 `[ASSUMPTION]` 标记提交核查）。
+  - *版本归属存疑说明*：AI 初稿记为「Werkzeug 2.3 起」，人类核查为「3.0.0 起」；两者对**代码的影响完全相同**——不得依赖默认值。版本号以核查结果 3.0.0 为准记录，若后续发现实际更早，只需修正此句，不影响 §2 的任何决定。
+- **由此产生的强制约束（写入代码，不依赖任何版本判断）**：
+  1. 所有哈希调用**显式**写出 `method="pbkdf2:sha256"`；
+  2. 写一条测试断言种子账号哈希串以 `pbkdf2:sha256:` 开头 —— 即便将来有人删掉 `method` 参数，测试立即失败；
+  3. 若日后主动改用 scrypt（同为不可逆慢哈希、且为库默认值），**必须同步修改本 ADR 与 FR-1 的表述**，不得悄悄漂移：FR-1 只承诺「不可逆哈希」，本 ADR 承诺的是 PBKDF2，两者必须一致。
+- **`[已验证]` 关于本机运行时**：本机 `python 3.14.7` 当前未安装 `werkzeug`，因此上述结论来自文档核查而非现场 `inspect`。安装依赖后的复核动作仍保留在 ADR-005 §5（版本矩阵）。
 
 ## 6. 下游含义（供阶段 3/4 引用）
 
