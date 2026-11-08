@@ -9,6 +9,17 @@
 - **提交前必须确认工作树状态**：`git status --short` 应只包含本次要提交的文件。
 - 课程作业目标是 **20+ 笔小而清晰的提交**——刻意保持小步提交，不要合并历史。
 
+### 1.1 推送纪律（硬性）
+
+- **每笔 `commit` 之后立即 `git push origin main`**，保持远端与本地同步。
+- **push 失败必须立刻停下并报告人类**（附完整报错），不得继续累积本地提交当作已完成——「远端没记录」等于留痕不存在。
+- 已知失败模式：本机 `credential.helper=manager`，但 GitHub 条目曾出现 `schannel: SEC_E_NO_CREDENTIALS`，即凭据失效。修复方式（由人类手动执行一次，之后凭证会缓存）：
+  ```powershell
+  cmdkey /delete:git:https://github.com   # 清掉失效条目
+  git push origin main                    # 弹窗重新登录 GitHub
+  ```
+- 判定同步状态：`git status -sb` 显示 `ahead N` 即为存在未推送提交，必须处理。
+
 ## 2. 本机 git 不在 PATH
 
 每次使用 git 前先执行：
