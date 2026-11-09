@@ -27,12 +27,14 @@ bp = Blueprint("auth", __name__)
 @bp.before_app_request
 def guard_protected_paths():
     """在路由解析及 404/405 之前执行统一认证与管理员授权。"""
+    # Normalize path: strip trailing slash so /my-loans/ → /my-loans, etc.
+    path = request.path.rstrip("/") or "/"
     current_user = load_current_user()
-    path = request.path
     is_admin_path = path == "/admin" or path.startswith("/admin/")
     is_protected_path = (
         path == "/my-loans"
         or path == "/borrow"
+        or path == "/return"
         or path.startswith("/borrow/")
         or path.startswith("/return/")
         or is_admin_path
@@ -71,7 +73,10 @@ def login():
     try:
         user = authenticate_user(student_id, password)
     except BizError as err:
-        if session:
+        # Only clear the session if it was not already authenticated AND has content;
+        # a valid user who accidentally submits bad credentials on POST /login
+        # should NOT be silently logged out.
+        if g.current_user is None and session:
             session.clear()
         g.current_user = None
         return (

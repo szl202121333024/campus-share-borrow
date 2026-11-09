@@ -292,3 +292,56 @@ def test_non_admin_navigation_hides_admin_entry_and_login_failure_has_no_passwor
     student_html = client.get("/items").get_data(as_text=True)
     assert "退出登录" in student_html
     assert "后台管理" not in student_html
+
+
+def test_cache_control_no_store_on_protected_pages(client):
+    """Guard against cached auth-sensitive responses."""
+    resp = client.get("/login")
+    assert resp.headers.get("Cache-Control") == "no-store"
+
+    _login(client)
+    my_loans = client.get("/my-loans")
+    assert my_loans.status_code == 200
+    assert my_loans.headers.get("Cache-Control") == "no-store"
+
+
+def test_admin_login_success(client):
+    """Admin login creates a session; /admin/items route is Story 3.1."""
+    response = _login(
+        client, student_id="A001", password="admin123456"
+    )
+    assert response.status_code == 302
+    assert urlparse(response.headers["Location"]).path == "/items"
+
+    with client.session_transaction() as current_session:
+        assert current_session["role"] == "admin"
+        assert current_session["user_id"] == 3
+
+
+def test_tampered_role_session_is_rejected(client, app, monkeypatch):
+    """Role tampering: set role='admin' in cookie for a student user → treated as anonymous."""
+    from itsdangerous.timed import TimestampSigner
+    from datetime import timedelta, timezone
+
+    serializer = app.session_interface.get_signing_serializer(app)
+    payload = {
+        "user_id": 1,  # student user (id=1, role='student' in DB)
+        "role": "admin",  # tampered: claims admin but DB has student
+        "login_at": (
+            datetime.now(timezone.utc) - timedelta(hours=1)
+        ).strftime(TIME_FORMAT),
+    }
+    signed_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            TimestampSigner,
+            "get_timestamp",
+            lambda _self: int(signed_at.timestamp()),
+        )
+        cookie_value = serializer.dumps(payload)
+
+    client.set_cookie("session", cookie_value, path="/")
+    response = client.get("/my-loans", follow_redirects=True)
+    # role mismatch → load_current_user clears session → treated as anonymous → 302 to login
+    assert response.history[0].status_code == 302
+    assert parse_qs(urlparse(response.history[0].headers["Location"]).query)["next"] == ["/my-loans"]
