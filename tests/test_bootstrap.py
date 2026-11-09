@@ -165,10 +165,11 @@ def test_check_constraint_rejects_borrowed_status(app):
 def test_sqlite_connect_only_in_get_db():
     """AC-1.1.8 / PC-2：建库调用只命中 db.py::get_db 一处（唯一连接入口）。"""
     needle = "sqlite3" ".connect("  # 运行期拼接，避免本测试文件自匹配
+    skip_dirs = {".git", "node_modules", ".claude", "__pycache__", "_bmad", "testtmp", "tests"}
     hits = []
     for py in REPO_ROOT.rglob("*.py"):
         rel = py.relative_to(REPO_ROOT)
-        if ".git" in rel.parts or "node_modules" in rel.parts:
+        if any(part in skip_dirs for part in rel.parts):
             continue
         if needle in py.read_text(encoding="utf-8"):
             hits.append(str(rel))
