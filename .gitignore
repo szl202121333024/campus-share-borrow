@@ -29,3 +29,6 @@ Thumbs.db
 # 运行产物
 *.log
 instance/
+.pytest_cache/
+# 受限环境下 pytest 的临时根（TEMP 被重定向到仓库内时使用）
+.testtmp/
