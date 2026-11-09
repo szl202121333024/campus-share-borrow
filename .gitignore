@@ -30,5 +30,5 @@ Thumbs.db
 *.log
 instance/
 .pytest_cache/
-# 受限环境下 pytest 的临时根（TEMP 被重定向到仓库内时使用）
-.testtmp/
+# 受限环境下的 pytest 临时根（见 pytest.ini 说明）
+testtmp/
