@@ -8,7 +8,13 @@
   {% if item_list %}
   <table>
     <thead>
-      <tr><th>名称</th><th>类别</th><th>状态</th><th>应还日期</th></tr>
+      <tr>
+        <th>名称</th>
+        <th>类别</th>
+        <th>状态</th>
+        <th>应还日期</th>
+        {% if current_user %}<th>借阅人</th>{% endif %}
+      </tr>
     </thead>
     <tbody>
       {% for item in item_list %}
@@ -19,6 +25,7 @@
           {% if item.display_state == 'borrowed' %}在借{% else %}可借{% endif %}
         </td>
         <td>{{ item.due_at if item.display_state == 'borrowed' else '—' }}</td>
+        {% if current_user %}<td>{{ item.borrower_name if item.display_state == 'borrowed' else '—' }}</td>{% endif %}
       </tr>
       {% endfor %}
     </tbody>
