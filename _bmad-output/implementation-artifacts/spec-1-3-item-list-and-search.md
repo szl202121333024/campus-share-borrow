@@ -2,7 +2,7 @@
 title: 'Story 1.3：物品列表与关键字搜索'
 type: 'feature'
 created: '2026-11-09'
-status: 'draft'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'e99d0a6'
