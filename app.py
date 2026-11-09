@@ -7,8 +7,10 @@
 import os
 import secrets
 import socket
+from datetime import timedelta
 
 from flask import Flask, redirect, render_template, url_for
+from flask.sessions import SecureCookieSession, SecureCookieSessionInterface
 
 import db as db_module
 from config import ERROR_MESSAGES, BizError
@@ -22,6 +24,22 @@ PORT = 5000
 SECRET_KEY_ENV = "CAMPUS_SECRET_KEY"
 INSTANCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance")
 SECRET_KEY_FILE = os.path.join(INSTANCE_DIR, "secret_key")
+
+
+class PermanentSession(SecureCookieSession):
+    """所有签名会话均按永久会话处理，不向 cookie 添加控制字段。"""
+
+    @property
+    def permanent(self):
+        return True
+
+    @permanent.setter
+    def permanent(self, _value):
+        pass
+
+
+class PermanentCookieSessionInterface(SecureCookieSessionInterface):
+    session_class = PermanentSession
 
 
 def load_secret_key():
@@ -50,12 +68,21 @@ def load_secret_key():
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = load_secret_key()
-    app.config["PERMANENT_SESSION_LIFETIME"] = 86400
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
+    app.config["SESSION_REFRESH_EACH_REQUEST"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = False
+    app.session_interface = PermanentCookieSessionInterface()
     app.teardown_appcontext(close_db)
 
+    from routes.auth import bp as auth_bp
     from routes.items import bp as items_bp
+    from routes.loans import bp as loans_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(items_bp)
+    app.register_blueprint(loans_bp)
 
     @app.get("/")
     def index():

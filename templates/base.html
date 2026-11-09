@@ -8,8 +8,30 @@
 <body>
   <header>
     <h1><a href="{{ url_for('items.items_page') }}">校园共享器材 / 图书借阅</a></h1>
+    <nav aria-label="主导航">
+      <a href="{{ url_for('items.items_page') }}">物品列表</a>
+      {% if current_user %}
+      <a href="{{ url_for('loans.my_loans_page') }}">我的借阅</a>
+      {% if current_user['role'] == 'admin' %}
+      <a href="/admin/items">后台管理</a>
+      {% endif %}
+      <span>{{ current_user['name'] }}（{{ '管理员' if current_user['role'] == 'admin' else '学生' }}）</span>
+      <form method="post" action="{{ url_for('auth.logout') }}">
+        <button type="submit">退出登录</button>
+      </form>
+      {% else %}
+      <a href="{{ url_for('auth.login') }}">登录</a>
+      {% endif %}
+    </nav>
   </header>
   <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <div class="flash-messages" role="status">
+        {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </main>
 </body>

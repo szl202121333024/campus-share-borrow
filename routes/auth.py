@@ -1,0 +1,97 @@
+"""登录、登出与全站唯一访问守卫（Story 1.2）。"""
+
+from flask import (
+    Blueprint,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+
+from config import BizError
+from services.auth import (
+    SESSION_EXPIRED_MESSAGE,
+    authenticate_user,
+    begin_user_session,
+    clear_user_session,
+    load_current_user,
+    safe_next_path,
+)
+
+bp = Blueprint("auth", __name__)
+
+
+@bp.before_app_request
+def guard_protected_paths():
+    """在路由解析及 404/405 之前执行统一认证与管理员授权。"""
+    current_user = load_current_user()
+    path = request.path
+    is_admin_path = path == "/admin" or path.startswith("/admin/")
+    is_protected_path = (
+        path == "/my-loans"
+        or path == "/borrow"
+        or path.startswith("/borrow/")
+        or path.startswith("/return/")
+        or is_admin_path
+    )
+    if not is_protected_path:
+        return None
+    if current_user is None:
+        if g.get("session_expired"):
+            flash(SESSION_EXPIRED_MESSAGE)
+        return redirect(url_for("auth.login", next=path))
+    if is_admin_path and current_user["role"] != "admin":
+        raise BizError(403, "FORBIDDEN")
+    return None
+
+
+@bp.app_context_processor
+def inject_current_user():
+    return {"current_user": g.get("current_user")}
+
+
+@bp.route("/login", methods=("GET", "POST"))
+def login():
+    if request.method == "GET":
+        if g.get("current_user") is not None:
+            return redirect(url_for("items.items_page"))
+        next_path = safe_next_path(request.args.get("next"))
+        return (
+            render_template("login.html", next_path=next_path, student_id=""),
+            200,
+            {"Cache-Control": "no-store"},
+        )
+
+    student_id = request.form.get("student_id", "").strip()
+    password = request.form.get("password", "")
+    next_path = safe_next_path(request.form.get("next"))
+    try:
+        user = authenticate_user(student_id, password)
+    except BizError as err:
+        if session:
+            session.clear()
+        g.current_user = None
+        return (
+            render_template(
+                "login.html",
+                next_path=next_path,
+                student_id=student_id,
+                error_code=err.error_code,
+                message=err.message,
+            ),
+            err.status_code,
+            {"Cache-Control": "no-store"},
+        )
+
+    begin_user_session(user)
+    return redirect(next_path)
+
+
+@bp.post("/logout")
+def logout():
+    response = redirect(url_for("items.items_page"))
+    clear_user_session(response)
+    return response

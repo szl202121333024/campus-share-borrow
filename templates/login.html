@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}学号登录 - 校园共享借阅{% endblock %}
+{% block content %}
+  <h2>学号登录</h2>
+  {% if error_code %}
+  <div class="error-panel" role="alert">
+    <p>{{ message }}</p>
+    <p class="error-code">{{ error_code }}</p>
+  </div>
+  {% endif %}
+  <form method="post" action="{{ url_for('auth.login') }}">
+    <input type="hidden" name="next" value="{{ next_path }}">
+    <p>
+      <label for="student_id">学号</label>
+      <input id="student_id" type="text" name="student_id" value="{{ student_id }}"
+             autocomplete="username" required>
+    </p>
+    <p>
+      <label for="password">密码</label>
+      <input id="password" type="password" name="password"
+             autocomplete="current-password" required>
+    </p>
+    <button type="submit">登录</button>
+  </form>
+{% endblock %}
