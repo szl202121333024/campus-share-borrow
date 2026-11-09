@@ -39,7 +39,7 @@ $env:Path = "D:\Program Files\Git\cmd;" + $env:Path
 
 - 借阅限额 **3 件**；借期 **7 天**；
 - 借阅错误**判定顺序六步**：① 未登录 302 → ② 不存在 404 → ③ 停用 409 → ④ 本人已持有 409 → ⑤ 限额 409 → ⑥ 唯一约束兜底 409；
-- 8 个错误码的语义（`RESOURCE_NOT_FOUND` 与 `INVALID_CREDENTIALS` 是刻意的两处合并）。
+- 9 个错误码的语义（`RESOURCE_NOT_FOUND` 与 `INVALID_CREDENTIALS` 是刻意的两处合并）。
 
 ## 5. 留痕规则
 

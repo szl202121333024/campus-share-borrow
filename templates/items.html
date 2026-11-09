@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}物品列表 - 校园共享借阅{% endblock %}
+{% block content %}
+  <form method="get" action="{{ url_for('items.items_page') }}">
+    <input type="text" name="q" placeholder="按名称搜索" aria-label="关键字">
+    <button type="submit">搜索</button>
+  </form>
+  {% if item_list %}
+  <table>
+    <thead>
+      <tr><th>名称</th><th>类别</th><th>状态</th><th>应还日期</th></tr>
+    </thead>
+    <tbody>
+      {% for item in item_list %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ '图书' if item.category == 'book' else '器材' }}</td>
+        <td>
+          {% if item.display_state == 'borrowed' %}在借{% else %}可借{% endif %}
+        </td>
+        <td>{{ item.due_at if item.display_state == 'borrowed' else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">没有找到相关物品</p>
+  {% endif %}
+{% endblock %}

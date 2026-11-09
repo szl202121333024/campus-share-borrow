@@ -11,6 +11,9 @@ env/
 *.sqlite
 *.sqlite3
 *.db-journal
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 
 # 环境与密钥
 .env
