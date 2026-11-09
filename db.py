@@ -5,6 +5,7 @@
 
 import os
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 from flask import g
@@ -103,6 +104,19 @@ def close_db(exc=None):
     conn = g.pop("db", None)
     if conn is not None:
         conn.close()
+
+
+@contextmanager
+def write_transaction():
+    """写事务唯一原语（PC-4、AC-2.1.10）：显式 BEGIN IMMEDIATE，异常必回滚。"""
+    conn = get_db()
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield conn
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    conn.execute("COMMIT")
 
 
 def _seed_if_empty(db):
