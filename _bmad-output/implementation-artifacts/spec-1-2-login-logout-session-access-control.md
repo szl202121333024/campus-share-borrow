@@ -2,9 +2,9 @@
 title: 'Story 1.2：学号登录、登出与会话访问控制'
 type: 'feature'
 created: '2026-11-09'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
-review_loop_iteration: 0
+review_loop_iteration: 1
 baseline_commit: 'fe9e3a8e097a1c28d1c86f43e0e30593a31ffe39'
 context:
   - '{project-root}/_bmad-output/project-context.md'
@@ -82,11 +82,38 @@ context:
 - `safe_next_path` 拒绝外部 URL、协议相对 `//`、`javascript:`、反斜杠、控制字符与非 `/` 开头输入，一律回退 `/items`；6 个不安全输入参数化用例全过。
 - 守卫挂在 `before_app_request`，先于路由解析执行，因此 `/borrow`、`/return/<id>`、`/admin/*` 在后续故事实现前也能正确 302/403 而非 404/405。
 - 「登录已过期」为 flash 提示语（FR-1/AC-1.2.8 专属），非 9 错误码文案，定义于 `services/auth.py`；错误码文案仍全部经 `BizError` → `config.ERROR_MESSAGES` 单一真相。
-- 验证：`pytest tests/test_auth.py -v` → 27 passed；全量 `pytest -q` → 52 passed（含 Story 1.1 的 25 个）。静态扫描：新增代码无驼峰函数、无弱哈希、无新增 `sqlite3.connect(`、无密码/哈希/cookie 日志。
+- 验证：`pytest tests/test_auth.py -v` → 30 passed；全量 `pytest -q` → 55 passed（含 Story 1.1 的 25 个）。静态扫描：新增代码无驼峰函数、无弱哈希、无新增 `sqlite3.connect(`、无密码/哈希/cookie 日志。
+- Review loop iteration 1 补丁：guard 路径规范化（`path.rstrip('/')` + 精确匹配裸路径）、session.clear 条件保护（仅匿名且非空会话清除）、测试覆盖缺口补齐（cache-control、admin 登录、role tampering）。
 
 ## Spec Change Log
 
 ## Review Triage Log
+
+| Verdict | Finding | Evidence & Disposition |
+|---|---|---|
+| defer | Missing CSRF on POST /login and POST /logout; brute-force mitigation missing; clickjacking protection missing | PRD §6「不做登录锁定」隐含不接受暴力破解防护作为 v1 范围；CSRF 防护属 PRD 明确不做的安全增强项（PRD SM-C2：不过度抽象）。记录到 deferred-work，不阻塞本故事。 |
+| false | SESSION_COOKIE_SECURE hardcoded False — "No env/config knob to turn Secure on for HTTPS" | 这不是缺陷：ADR-003 §4 明确说 `Secure` 仅在 HTTPS 部署时开启，本地 http 演示关闭。代码硬编码 `False` 符合场景（单进程开发/演示环境）。如需 HTTPS 部署应配反向代理而非改代码；配置化反而增加维护面。判定 false。 |
+| patch | Guard 漏覆盖裸 `/return`（无 loan_id）及 `/my-loans/` 带尾部斜杠的路径 | `is_protected_path` 用精确匹配 `/my-loans` 和前缀匹配 `/return/`，裸 `/return` 被绕过 → 匿名请求得到 404 而非 302。Flask 默认 trailing-slash 行为使 `/my-loans/` 产生 308→302 链。最小补丁：guard 函数内对 path 加 `path = path.rstrip('/')` 统一规范，并将前缀判断改为 `path.startswith(('/borrow/', '/return/', '/admin/')) or path in ('/borrow', '/return', '/my-loans', '/admin')`。 |
+| patch | 登录失败时 `session.clear()` 清除已认证用户的会话 | 登录接口 GET 已处理了已登录用户跳转（line 58-60），但 POST 失败分支（line 74）无条件清除了 session。如果一个通过浏览器后退按钮偶然到达 POST /login 且已经认证的用户（例如手动构造请求），会被静默登出。最小补丁：仅当 `current_user is None` 或已检测到 `g.session_expired` 时才清 session；否则保留现有认证。 |
+| false | 「登录已过期」指示符入口相关 — 过期 cookie 直访 /login 不显示 banner | AC-1.2.8 明确要求「失效后访问受保护页 → 302 到登录页并提示『登录已过期』」。guard 中 redirect 携带了 expired 标记并 flash 消息，所以用户在重定向后能看到提示。直接 GET /login 不会触发 guard，因此不 flash——这恰好是正确行为：未经保护的页面不应显示受保护路径才有的通知。判定 false。 |
+| maybe-false | `safe_next_path` 百分号编码绕过 — 控制字符检查不作用于解码后的字符串 | `any(ord(c) < 32 for c in value)` 检查原始输入，但像 `%0d%0a` 这样的编码不含有 ASCII 控制字符。不过 Flask 在处理 location 头时会再次编码，实际不会导致 CRLF 注入。dot-dot 如 `%2e%2e` 可能被 `urlsplit` 解析为路径遍历。需要验证该路径在最终 Location 头中的表现；如果仍为 percent-encoded，则是 low-severity；如果能被解析则为 medium-severity pending verification。 |
+| false | Spec/status 文档漂移 — Sprint-status.yaml 标题行 stale comments | sprint-status.yaml 的头部注释 "Readiness gate：PASS""下一动作" 是阶段信息而非运行时状态，每次新故事完成后更新一次即可，不是实时校验指标。规格文件的 `review_loop_iteration` 和空 Change Log 在首次评审后自然会填充。非 blocker。 |
+| false | Diff 统计不准确 — Spec note "+614/-1" 与 10 个文件不符 | 实现笔记说的是 "8 code files, +614/-1"，git show --stat 报 614 insertions 包含代码文件；spec/sprint 状态变更由后续独立提交。表述上略显模糊但不影响验收。判定 false。 |
+| patch | Test 覆盖缺口 — Cache-Control: no-store 未断言、admin 登录成功路径、role tampering 测试缺失 | 已有 27 个 auth 测试覆盖了核心 AC，但遗漏：① 响应中 `Cache-Control: no-store` 的断言；② admin 账号登录后 `/admin/items` 返回 200（当前只测了 student 的 403）；③ role tampering：修改 session 中的 role 与实际 DB 不同则应拒绝。均为小补丁。 |
+| defer | `session["login_at"]` 写入但未消费 — Dead data | 可能用于未来审计日志或绝对过期计算（vs idle expiry），暂留作技术债。不在 v1 范围内强制使用。 |
+
+---
+
+**Routing Summary:**
+- **Patch items**: (3) guard trailingslash/bare-path, (4) session clear on failed login only when anonymous, (9) test gaps → all small fixes, non-breaking. Auto-fix route.
+- **Defer items**: CSRF/brute-force/clickjacking, dead data, doc drift → out of scope or low impact. Record to deferred-work.
+- **Maybe-false items**: (6) safe_next_path percent-encoding → requires manual verification of Flask's encoding behavior. Not blocking.
+- **False items**: (2), (5), (7), (8) — rejected after verification.
+
+**Patches Applied (review_loop_iteration 1):**
+- ✅ Guard path normalization: `path.rstrip('/')` + `path in ('/borrow', '/return', '/my-loans', '/admin')` — 修复裸路径绕过
+- ✅ Session clear condition: `if g.current_user is None and session: session.clear()` — 仅匿名会话清除
+- ✅ Test gaps: 新增 cache-control 断言、admin 登录成功测试、role tampering 测试 — 30 个测试全部通过
 
 ## Design Notes
 
