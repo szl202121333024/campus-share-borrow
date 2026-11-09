@@ -2,7 +2,7 @@
 title: 'Story 1.2：学号登录、登出与会话访问控制'
 type: 'feature'
 created: '2026-11-09'
-status: 'draft'
+status: 'ready-for-dev'
 route: 'dispatch'
 review_loop_iteration: 0
 context:
