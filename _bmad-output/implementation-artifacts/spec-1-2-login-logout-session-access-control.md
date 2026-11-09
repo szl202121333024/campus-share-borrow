@@ -2,9 +2,10 @@
 title: 'Story 1.2：学号登录、登出与会话访问控制'
 type: 'feature'
 created: '2026-11-09'
-status: 'ready-for-dev'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 0
+baseline_commit: 'fe9e3a8e097a1c28d1c86f43e0e30593a31ffe39'
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
@@ -54,11 +55,11 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `services/auth.py` — 实现认证、当前用户和过期判定，确保每次登录尝试恰好一次哈希校验。
-- [ ] `routes/auth.py`、`routes/loans.py` — 实现登录/登出、next 安全跳转和统一路径守卫。
-- [ ] `app.py` — 注册蓝图，显式固定 session 刷新与 cookie 属性。
-- [ ] `templates/` — 完成登录、最小我的借阅和导航/消息展示，不渲染敏感字段。
-- [ ] `tests/test_auth.py` — 覆盖全部 AC、cookie 属性及日志脱敏，再运行全量回归。
+- [x] `services/auth.py` — 实现认证、当前用户和过期判定，确保每次登录尝试恰好一次哈希校验。
+- [x] `routes/auth.py`、`routes/loans.py` — 实现登录/登出、next 安全跳转和统一路径守卫。
+- [x] `app.py` — 注册蓝图，显式固定 session 刷新与 cookie 属性。
+- [x] `templates/` — 完成登录、最小我的借阅和导航/消息展示，不渲染敏感字段。
+- [x] `tests/test_auth.py` — 覆盖全部 AC、cookie 属性及日志脱敏，再运行全量回归。
 
 **Acceptance Criteria:**
 - Given 正确种子账号，when POST `/login`，then 302 `/items`、下发会话，随后 `/my-loans` 为 200。
@@ -73,6 +74,15 @@ context:
 - Given 不存在学号，when 登录，then 固定假哈希校验恰好一次，且与密码错误的状态、错误码、文案一致。
 
 ## Implementation Notes
+
+- 实现落在本地提交 `7a61f47`（8 个文件，+614/-1）：新增 `services/auth.py`、`routes/auth.py`、`routes/loans.py`、`templates/login.html`、`templates/my_loans.html`、`tests/test_auth.py`；修改 `app.py`、`templates/base.html`。
+- 会话永久化通过自定义 `PermanentSession`/`PermanentCookieSessionInterface` 实现（`permanent` 恒为 True），避免在每个写 session 的路径上手动置位；cookie 只含 `user_id`/`role`/`login_at` 三字段（AC-1.2.1 以 `set(current_session)` 精确断言）。
+- 过期判定用 `itsdangerous` 的 `loads(max_age=None, return_timestamp=True)` 读签名时间戳：能区分「签名有效但超 24h」（302 + 「登录已过期」flash）与「签名无效」（按匿名处理，不提示过期），不用 sleep 造过期。
+- 学号不存在时对固定 `DUMMY_PASSWORD_HASH`（pbkdf2:sha256 格式）执行一次 `verify_password`，AC-1.2.10 以 monkeypatch 计数断言恰好 1 次，且与密码错误响应逐项一致。
+- `safe_next_path` 拒绝外部 URL、协议相对 `//`、`javascript:`、反斜杠、控制字符与非 `/` 开头输入，一律回退 `/items`；6 个不安全输入参数化用例全过。
+- 守卫挂在 `before_app_request`，先于路由解析执行，因此 `/borrow`、`/return/<id>`、`/admin/*` 在后续故事实现前也能正确 302/403 而非 404/405。
+- 「登录已过期」为 flash 提示语（FR-1/AC-1.2.8 专属），非 9 错误码文案，定义于 `services/auth.py`；错误码文案仍全部经 `BizError` → `config.ERROR_MESSAGES` 单一真相。
+- 验证：`pytest tests/test_auth.py -v` → 27 passed；全量 `pytest -q` → 52 passed（含 Story 1.1 的 25 个）。静态扫描：新增代码无驼峰函数、无弱哈希、无新增 `sqlite3.connect(`、无密码/哈希/cookie 日志。
 
 ## Spec Change Log
 
