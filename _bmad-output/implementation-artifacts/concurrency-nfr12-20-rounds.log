@@ -1,26 +1,26 @@
-# Story 2.4 / NFR-1.2 并发超额真实日志  生成于 2026-11-10 17:00:33
+# Story 2.4 / NFR-1.2 并发超额真实日志  生成于 2026-11-10 19:35:21
 启动命令: python -m pytest tests/test_quota_concurrency.py -v -k 20_rounds
-部署形态: 单进程 app.run(threaded=True, host=127.0.0.1, port=49440, use_reloader=False)
+部署形态: 单进程 app.run(threaded=True, host=127.0.0.1, port=58505, use_reloader=False)
 并发方式: threading.Barrier(2) + 2 线程 + 各自独立 TCP 连接（同一用户会话）
 实验设定: 2024001 在借 (1, 2)（差1件满额），并发借 3 与 4
 ------------------------------------------------------------------------
-round 01: item3=302 item4=409 | barrier 释放间隔=0.28ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 02: item3=409 item4=302 | barrier 释放间隔=0.30ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 03: item3=409 item4=302 | barrier 释放间隔=0.27ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 04: item3=409 item4=302 | barrier 释放间隔=0.20ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 05: item3=409 item4=302 | barrier 释放间隔=0.27ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 06: item3=409 item4=302 | barrier 释放间隔=0.49ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 07: item3=302 item4=409 | barrier 释放间隔=0.36ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 08: item3=409 item4=302 | barrier 释放间隔=0.26ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 09: item3=302 item4=409 | barrier 释放间隔=0.26ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 10: item3=409 item4=302 | barrier 释放间隔=0.18ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 11: item3=409 item4=302 | barrier 释放间隔=0.31ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 12: item3=302 item4=409 | barrier 释放间隔=0.27ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 13: item3=302 item4=409 | barrier 释放间隔=0.31ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 14: item3=409 item4=302 | barrier 释放间隔=0.22ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 15: item3=302 item4=409 | barrier 释放间隔=0.27ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 16: item3=409 item4=302 | barrier 释放间隔=0.26ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
-round 17: item3=302 item4=409 | barrier 释放间隔=0.28ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 18: item3=302 item4=409 | barrier 释放间隔=0.28ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 19: item3=302 item4=409 | barrier 释放间隔=0.27ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
-round 20: item3=302 item4=409 | barrier 释放间隔=0.27ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 01: item3=409 item4=302 | barrier 释放间隔=0.12ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 02: item3=302 item4=409 | barrier 释放间隔=0.15ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 03: item3=302 item4=409 | barrier 释放间隔=0.11ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 04: item3=302 item4=409 | barrier 释放间隔=0.14ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 05: item3=302 item4=409 | barrier 释放间隔=0.17ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 06: item3=302 item4=409 | barrier 释放间隔=0.15ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 07: item3=409 item4=302 | barrier 释放间隔=0.11ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 08: item3=409 item4=302 | barrier 释放间隔=0.12ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 09: item3=302 item4=409 | barrier 释放间隔=0.27ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 10: item3=409 item4=302 | barrier 释放间隔=0.17ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 11: item3=409 item4=302 | barrier 释放间隔=0.13ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 12: item3=409 item4=302 | barrier 释放间隔=0.19ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 13: item3=302 item4=409 | barrier 释放间隔=0.18ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 14: item3=302 item4=409 | barrier 释放间隔=0.12ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 15: item3=409 item4=302 | barrier 释放间隔=0.14ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 16: item3=409 item4=302 | barrier 释放间隔=0.13ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 17: item3=302 item4=409 | barrier 释放间隔=0.17ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 18: item3=302 item4=409 | barrier 释放间隔=0.12ms | 成功方=物品 3 | 失败方=item4 LIMIT_EXCEEDED | user_active=3 OK
+round 19: item3=409 item4=302 | barrier 释放间隔=0.12ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK
+round 20: item3=409 item4=302 | barrier 释放间隔=0.19ms | 成功方=物品 4 | 失败方=item3 LIMIT_EXCEEDED | user_active=3 OK

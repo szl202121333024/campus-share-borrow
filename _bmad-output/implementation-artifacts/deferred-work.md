@@ -69,6 +69,7 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
   summary: NFR-1.3 归还真并发直压仍待补
   evidence: Story 2.3 遗留项继续有效。本故事的 threaded 脚手架已可直接支撑归还并发（race_post 目前只封装 POST /borrow 形态，需扩展或新写 race_post_return），建议结合 Story 2.5 的额度指示收口一并补齐；不得继续只靠 2.2 的 test_client 冒烟充当正式验收。
+  **RESOLVED (Story 2.5)**：kit 已泛化 race_request 并新增 race_return；tests/test_return_concurrency.py 以真并发 20 轮 {302,409} + returned_at 单次写入完成正式验收，逐轮日志 concurrency-nfr13-return-20-rounds.log 入库。
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
   summary: get_remaining_quota() 页面调用方尚不存在

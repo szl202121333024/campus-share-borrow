@@ -32,6 +32,8 @@ Thumbs.db
 !_bmad-output/implementation-artifacts/concurrency-nfr11-20-rounds.log
 # Story 2.4 SM-2 验收证据：20 轮并发超额日志入库（AC-2.4.1~2.4.3），同上口径
 !_bmad-output/implementation-artifacts/concurrency-nfr12-20-rounds.log
+# Story 2.5 收口：NFR-1.3 归还真并发 20 轮日志入库（deferred-work 2.4 遗留项了结），同上口径
+!_bmad-output/implementation-artifacts/concurrency-nfr13-return-20-rounds.log
 instance/
 .pytest_cache/
 # 受限环境下的 pytest 临时根（见 pytest.ini 说明）
