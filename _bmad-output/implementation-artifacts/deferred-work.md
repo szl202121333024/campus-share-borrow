@@ -74,3 +74,11 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
   summary: get_remaining_quota() 页面调用方尚不存在
   evidence: 额度单点化重构（D-025）已把「借阅前置校验」接入唯一真相；「页面限额指示」调用方（/items 与 /my-loans 顶部「已借 X / 3」）按 epics 条款属 Story 2.5（AC-2.5.3/2.5.5），本故事不提前渲染。
+
+---
+
+## Story 2.5: 我的借阅与限额指示（额度只有一处真相）
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-5-my-loans-quota-indicator.md`
+  summary: 20 轮证据日志被每次测试重写，优化留待项目收尾
+  evidence: concurrency-nfr11/nfr12 两份日志由用例无条件覆写（仅时间戳变化）。用户 2026-11-10 指示：不着急，整个项目跑完再优化；候选方案为 conftest.py 增加「已存在则不覆盖」判断，或只保留首轮样本作为只读证据。三处写盘点：tests/test_concurrency.py、tests/test_quota_concurrency.py、tests/test_return_concurrency.py。
