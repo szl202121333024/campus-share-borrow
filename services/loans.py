@@ -34,6 +34,11 @@ def _loan_counts(conn, item_id, user_id):
     return dict(row)
 
 
+# ⑥ 唯一索引兜底的物理证据特征串：仅这一种 IntegrityError 映射为 409。
+# 外键失败等其他完整性错误不得被伪装成业务冲突（ADR-002 §4、AC-2.3.10）。
+_UNIQUE_ITEM_CONFLICT = "UNIQUE constraint failed: loans.item_id"
+
+
 def borrow_item(user_id, item_id):
     """借阅一件物品，成功返回 due_at 文本；失败抛 BizError（真实 4xx + 错误码）。"""
     conn = get_db()
@@ -65,6 +70,10 @@ def borrow_item(user_id, item_id):
                 (item_id, user_id, borrowed_at, due_at),
             )
     except sqlite3.IntegrityError as exc:
+        # ⑥：只有部分唯一索引冲突才与 ④ 响应逐字一致（D-016）；
+        # 其他完整性错误（外键失败等）原样上抛，由 Flask 呈现 500（AC-2.3.10、ADR-002 §4）。
+        if _UNIQUE_ITEM_CONFLICT not in str(exc):
+            raise
         raise BizError(409, "ALREADY_BORROWED") from exc
     return due_at
 
