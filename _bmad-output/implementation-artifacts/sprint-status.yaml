@@ -1,9 +1,9 @@
 # BMAD sprint planning output
 # 生成时间：2026-11-09 11:51
 # Readiness gate：PASS
-# 下一动作：bmad-build Story 3.1（管理员新增物品与管理列表）
+# 下一动作：bmad-build Story 3.2（删除物品：在借拦截 + 同事务级联清理）
 generated: "11-09-2026 11:51"
-last_updated: "11-10-2026 19:24"
+last_updated: "11-10-2026 21:40"
 project: "campus-share-borrow"
 project_key: "campus-share-borrow"
 tracking_system: "file-system"
@@ -24,8 +24,8 @@ development_status:
   2-5-我的借阅与限额指示额度只有一处真相: done
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-管理员新增物品与管理列表: backlog
+  epic-3: in-progress
+  3-1-管理员新增物品与管理列表: done
   3-2-删除物品在借拦截与同事务级联清理: backlog
   3-3-停用物品在借也能停用归还后仍停用: backlog
   3-4-恢复上架与状态机边界回归: backlog

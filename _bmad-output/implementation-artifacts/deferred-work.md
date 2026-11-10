@@ -82,3 +82,15 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-5-my-loans-quota-indicator.md`
   summary: 20 轮证据日志被每次测试重写，优化留待项目收尾
   evidence: concurrency-nfr11/nfr12 两份日志由用例无条件覆写（仅时间戳变化）。用户 2026-11-10 指示：不着急，整个项目跑完再优化；候选方案为 conftest.py 增加「已存在则不覆盖」判断，或只保留首轮样本作为只读证据。三处写盘点：tests/test_concurrency.py、tests/test_quota_concurrency.py、tests/test_return_concurrency.py。
+
+---
+
+## Story 3.1: 管理员新增物品与管理列表
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-admin-create-item-and-list.md`
+  summary: CSRF 保护（POST /admin/items 写路径）
+  evidence: 沿用 Story 1.2 起已裁决的延期口径（PRD §6 明确不做）。管理新增表单同样不带 CSRF token，风险口径不变，记录不阻塞。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-admin-create-item-and-list.md`
+  summary: 400 响应未回显表单输入值
+  evidence: FR-6 校验失败统一返回 400 INVALID_INPUT + 通用错误页（error.html），不回显/重渲染表单。AC-3.1.4/3.1.5 仅要求状态码、错误码与零写入，均已满足；「校验失败后表单保留输入」属体验优化，PRD SM-C3 明确界面美观度不优化，留待后续迭代。
