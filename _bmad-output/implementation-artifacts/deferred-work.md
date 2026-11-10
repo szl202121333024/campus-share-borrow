@@ -57,3 +57,19 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-nfr11-concurrent-borrow.md`
   summary: 测试脚手架行为非产品功能
   evidence: 20 轮间以底层 SQL 标记归还做重置、以及用连接层替身注入 FOREIGN KEY 失败（AC-2.3.10），均为 tests/ 内脚手架；生产代码路径不受影响，评审时不要当作产品能力。
+
+---
+
+## Story 2.4: NFR-1.2 同一用户并发超额（BEGIN IMMEDIATE 事务原子性）
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
+  summary: CSRF 保护（并发实验经真实 HTTP 表单提交）
+  evidence: 沿用 Story 1.2 起已裁决的延期口径（PRD §6 明确不做）。kit 的 race_post 走真实 TCP 提交表单同样不带 CSRF token，风险口径不变，记录不阻塞。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
+  summary: NFR-1.3 归还真并发直压仍待补
+  evidence: Story 2.3 遗留项继续有效。本故事的 threaded 脚手架已可直接支撑归还并发（race_post 目前只封装 POST /borrow 形态，需扩展或新写 race_post_return），建议结合 Story 2.5 的额度指示收口一并补齐；不得继续只靠 2.2 的 test_client 冒烟充当正式验收。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-nfr12-concurrent-quota.md`
+  summary: get_remaining_quota() 页面调用方尚不存在
+  evidence: 额度单点化重构（D-025）已把「借阅前置校验」接入唯一真相；「页面限额指示」调用方（/items 与 /my-loans 顶部「已借 X / 3」）按 epics 条款属 Story 2.5（AC-2.5.3/2.5.5），本故事不提前渲染。

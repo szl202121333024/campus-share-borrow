@@ -8,8 +8,9 @@ phase: 2 / bmad-architecture
 
 # 架构决策索引 · campus-share-borrow
 
-- **上游**：[PRD](../../prds/prd-campus-share-borrow-2026-11-08/prd.md)（`status: final`）、[decision-log.md](../../../../decision-log.md)（D-001 ~ D-021）
-- **本阶段产物**：ADR-001 ~ ADR-007，每条四段齐全（背景 / 决定 / 否决的备选方案 / 后果）
+- **上游**：[PRD](../../prds/prd-campus-share-borrow-2026-11-08/prd.md)（`status: final`）、[decision-log.md](../../../../decision-log.md)（D-001 ~ D-025）
+- **本阶段产物**：ADR-001 ~ ADR-007（阶段 2 定稿 7 条），每条四段齐全（背景 / 决定 / 否决的备选方案 / 后果）
+- **阶段 4 追加**：ADR-008（`IntegrityError` 精确映射）——**不属于阶段 2 定稿范围**，由人类在 Story 2.3 验收时依 D-024 裁决升格追加，见 decision-log 与 AGENTS.md 产物清单注记
 - **下游**：阶段 3 `bmad-create-epics-and-stories`（产出 3 史诗 + ≥12 故事 + `project-context.md`）
 
 ## 1. ADR 一览
@@ -23,8 +24,9 @@ phase: 2 / bmad-architecture
 | [ADR-005](ADR-005-concurrency-deployment.md) | 并发与部署 | WAL + `busy_timeout=5000` + `foreign_keys=ON`，单进程 `python app.py` | 5 条 | 规范确认 |
 | [ADR-006](ADR-006-item-model.md) | 物品模型 | **一物一行**单件实体，无任何数量/库存列；同款多件录多条 | 5 条 | D-001 |
 | [ADR-007](ADR-007-item-state-machine.md) | 物品状态机 | 「存储态 + 派生态」混合：`items.status` 只存 `available`/`unavailable`，`borrowed` 由 `loans` 派生，唯一写入者是管理员 | 5 条 | D-014、D-015 |
+| [ADR-008](ADR-008-integrity-error-precision-mapping.md) | IntegrityError 精确映射 | 仅唯一约束特征串命中才映射 409 `ALREADY_BORROWED`，其余完整性错误原样上抛呈现 500 | 4 条 | D-024（阶段 4 追加） |
 
-**合计**：7 条 ADR，33 个「否决的备选方案」，每个备选都带独立的否决理由。
+**合计**：8 条 ADR（阶段 2 定稿 7 条 + 阶段 4 追加 1 条），37 个「否决的备选方案」，每个备选都带独立的否决理由。
 
 ## 2. Reviewer Gate 自检结果（2026-11-08）
 

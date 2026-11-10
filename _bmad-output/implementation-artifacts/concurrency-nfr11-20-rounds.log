@@ -1,26 +1,26 @@
-# Story 2.3 / NFR-1.1 并发借阅真实日志  生成于 2026-11-10 13:32:30
+# Story 2.3 / NFR-1.1 并发借阅真实日志  生成于 2026-11-10 17:01:09
 启动命令: python -m pytest tests/test_concurrency.py -v -k 20_rounds
-部署形态: 单进程 app.run(threaded=True, host=127.0.0.1, port=57301, use_reloader=False)
+部署形态: 单进程 app.run(threaded=True, host=127.0.0.1, port=49527, use_reloader=False)
 并发方式: threading.Barrier(2) + 2 线程 + 各自独立 TCP 连接与会话 cookie
 抢借物品: 投影仪 (id=6), 参与者: 2024001 vs 2024002
 ------------------------------------------------------------------------
-round 01: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.18ms | 胜方=user_id 2 (loan_id=1) | active_count=1 OK
-round 02: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.17ms | 胜方=user_id 2 (loan_id=2) | active_count=1 OK
-round 03: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.14ms | 胜方=user_id 2 (loan_id=3) | active_count=1 OK
-round 04: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.16ms | 胜方=user_id 1 (loan_id=4) | active_count=1 OK
-round 05: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.12ms | 胜方=user_id 2 (loan_id=5) | active_count=1 OK
-round 06: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.15ms | 胜方=user_id 2 (loan_id=6) | active_count=1 OK
-round 07: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.12ms | 胜方=user_id 2 (loan_id=7) | active_count=1 OK
-round 08: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.19ms | 胜方=user_id 2 (loan_id=8) | active_count=1 OK
-round 09: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.20ms | 胜方=user_id 1 (loan_id=9) | active_count=1 OK
-round 10: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.13ms | 胜方=user_id 1 (loan_id=10) | active_count=1 OK
-round 11: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.17ms | 胜方=user_id 1 (loan_id=11) | active_count=1 OK
-round 12: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.12ms | 胜方=user_id 1 (loan_id=12) | active_count=1 OK
-round 13: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.21ms | 胜方=user_id 1 (loan_id=13) | active_count=1 OK
-round 14: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.12ms | 胜方=user_id 1 (loan_id=14) | active_count=1 OK
-round 15: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.14ms | 胜方=user_id 1 (loan_id=15) | active_count=1 OK
-round 16: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.12ms | 胜方=user_id 1 (loan_id=16) | active_count=1 OK
-round 17: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.15ms | 胜方=user_id 1 (loan_id=17) | active_count=1 OK
-round 18: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.12ms | 胜方=user_id 1 (loan_id=18) | active_count=1 OK
-round 19: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.16ms | 胜方=user_id 1 (loan_id=19) | active_count=1 OK
-round 20: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.14ms | 胜方=user_id 2 (loan_id=20) | active_count=1 OK
+round 01: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.33ms | 胜方=user_id 1 (loan_id=1) | active_count=1 OK
+round 02: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.25ms | 胜方=user_id 1 (loan_id=2) | active_count=1 OK
+round 03: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.38ms | 胜方=user_id 2 (loan_id=3) | active_count=1 OK
+round 04: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.30ms | 胜方=user_id 2 (loan_id=4) | active_count=1 OK
+round 05: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.44ms | 胜方=user_id 1 (loan_id=5) | active_count=1 OK
+round 06: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.33ms | 胜方=user_id 1 (loan_id=6) | active_count=1 OK
+round 07: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.20ms | 胜方=user_id 2 (loan_id=7) | active_count=1 OK
+round 08: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.34ms | 胜方=user_id 1 (loan_id=8) | active_count=1 OK
+round 09: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.38ms | 胜方=user_id 2 (loan_id=9) | active_count=1 OK
+round 10: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.33ms | 胜方=user_id 1 (loan_id=10) | active_count=1 OK
+round 11: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.34ms | 胜方=user_id 2 (loan_id=11) | active_count=1 OK
+round 12: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.29ms | 胜方=user_id 2 (loan_id=12) | active_count=1 OK
+round 13: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.26ms | 胜方=user_id 1 (loan_id=13) | active_count=1 OK
+round 14: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.31ms | 胜方=user_id 1 (loan_id=14) | active_count=1 OK
+round 15: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.30ms | 胜方=user_id 1 (loan_id=15) | active_count=1 OK
+round 16: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.44ms | 胜方=user_id 2 (loan_id=16) | active_count=1 OK
+round 17: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.34ms | 胜方=user_id 1 (loan_id=17) | active_count=1 OK
+round 18: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.35ms | 胜方=user_id 1 (loan_id=18) | active_count=1 OK
+round 19: A(2024001)=302 B(2024002)=409 | barrier 释放间隔=0.29ms | 胜方=user_id 1 (loan_id=19) | active_count=1 OK
+round 20: A(2024001)=409 B(2024002)=302 | barrier 释放间隔=0.44ms | 胜方=user_id 2 (loan_id=20) | active_count=1 OK

@@ -45,7 +45,7 @@ $env:Path = "D:\Program Files\Git\cmd;" + $env:Path
 
 - 任何**人类否决或实质修改 AI 方案**的动作，必须记入 `decision-log.md`（格式：触发 / 智能体建议 / 人类判断依据 / 结果 / 事后验证）。
 - 「事后验证」列不得留空；尚未验证的写「（未验证）」并在后续阶段回填。
-- 下一个可用编号：**D-023**。
+- 下一个可用编号：**D-026**。
 
 ## 6. 语言与格式
 
@@ -57,7 +57,7 @@ $env:Path = "D:\Program Files\Git\cmd;" + $env:Path
 | 类别 | 路径 |
 |---|---|
 | 需求基线 | `_bmad-output/planning-artifacts/prds/prd-campus-share-borrow-2026-11-08/prd.md` |
-| 架构决策 | `_bmad-output/planning-artifacts/architecture/adr-campus-share-borrow-2026-11-08/`（ADR-001~007 + README 索引） |
+| 架构决策 | `_bmad-output/planning-artifacts/architecture/adr-campus-share-borrow-2026-11-08/`（ADR-001~008 + README 索引；ADR-008 为阶段 4 实施中依 D-024 裁决追加） |
 | 史诗与故事 | `_bmad-output/planning-artifacts/epics.md`（3 史诗 / 12 故事 / 110 条 AC，**故事数量上限由 D-022 锁定，不得新增**） |
 | 实现规约 | `_bmad-output/project-context.md`（PC-1 ~ PC-15，写代码前先读、写完按 §4 自检） |
 | 决策日志 | `decision-log.md` |
