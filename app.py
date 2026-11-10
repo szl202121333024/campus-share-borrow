@@ -13,7 +13,7 @@ from flask import Flask, redirect, render_template, url_for
 from flask.sessions import SecureCookieSession, SecureCookieSessionInterface
 
 import db as db_module
-from config import ERROR_MESSAGES, BizError
+from config import BORROW_LIMIT, ERROR_MESSAGES, BizError
 from db import BootstrapError, close_db
 
 HOST = "127.0.0.1"
@@ -87,6 +87,11 @@ def create_app():
     @app.get("/")
     def index():
         return redirect(url_for("items.items_page"))
+
+    @app.context_processor
+    def inject_borrow_limit():
+        # AC-2.5.9：模板里的数字 3 不写死，引用 config 唯一常量。
+        return {"borrow_limit": BORROW_LIMIT}
 
     @app.errorhandler(BizError)
     def handle_biz_error(err):

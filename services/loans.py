@@ -18,8 +18,9 @@ BEGIN IMMEDIATE 写事务，快照一致性由事务串行化保证，D-008 意�
 """
 
 import sqlite3
+from datetime import datetime
 
-from config import BORROW_LIMIT, BizError
+from config import BORROW_LIMIT, TIME_FORMAT, BizError
 from db import due_text, get_db, now_text, write_transaction
 
 
@@ -39,7 +40,7 @@ def _active_loan_for_item(conn, item_id):
 def get_remaining_quota(student_id):
     """额度唯一真相（PC-7、D-013、AC-2.4.7）：函数体内只有这一条 COUNT(*) 聚合。
 
-    返回「剩余可借数」（借满 3 件返回 0）；前置校验（本函数被 borrow_item ⑤
+    返回「剩余可借数」，借满时返回 0；前置校验（本函数被 borrow_item ⑤
     调用）与页面限额指示（Story 2.5）共用这一处，逾期记录 returned_at IS NULL
     天然计入（AC-2.1.12）。
     """
@@ -125,21 +126,31 @@ def return_loan(user_id, loan_id):
 
 
 def list_user_loans(user_id):
-    """「我的借阅」最小可用版的唯一查询（Story 2.2；完整版在 Story 2.5）。
+    """我的借阅完整版的唯一查询（Story 2.5，AC-2.5.1~2.5.2）。
 
-    逾期标记在此一条 SQL 内派生：returned_at IS NULL 且 due_at 早于当前时间
-    才为逾期；归还后 returned_at 非空，is_overdue 自动归 0（AC-2.2.4），
-    模板只做渲染、不做换算。
+    只返回未归还记录：returned_at IS NOT NULL 一律过滤（AC-2.5.1）。
+    已归还记录的即时反馈由各归还请求的 flash 承担，归还后记录从本页
+    消失，自然不再标红（兼容 AC-2.2.4 的验收文本）。
+    逾期按用户口径在 Python 层计算：is_overdue 与 overdue_days =
+    当前日期 − 应还日期的日期差；due_at 当天不算逾期（AC-2.5.2）。
+    模板只渲染布尔与天数，不做任何时间换算。
     """
     conn = get_db()
     rows = conn.execute(
-        "SELECT l.id AS loan_id, i.name, l.borrowed_at, l.due_at, l.returned_at,"
-        "       CASE WHEN l.returned_at IS NULL AND l.due_at < ?"
-        "            THEN 1 ELSE 0 END AS is_overdue"
+        "SELECT l.id AS loan_id, i.name, l.borrowed_at, l.due_at"
         "  FROM loans l"
         "  JOIN items i ON i.id = l.item_id"
-        " WHERE l.user_id = ?"
-        " ORDER BY l.id DESC",
-        (now_text(), user_id),
+        " WHERE l.user_id = ? AND l.returned_at IS NULL"
+        " ORDER BY l.due_at ASC, l.id DESC",
+        (user_id,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    today = datetime.now().date()
+    result = []
+    for row in rows:
+        loan = dict(row)
+        due_date = datetime.strptime(loan["due_at"], TIME_FORMAT).date()
+        overdue_days = (today - due_date).days
+        loan["is_overdue"] = overdue_days > 0
+        loan["overdue_days"] = overdue_days if overdue_days > 0 else 0
+        result.append(loan)
+    return result

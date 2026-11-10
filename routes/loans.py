@@ -9,7 +9,12 @@
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 
 from config import BizError
-from services.loans import borrow_item, list_user_loans, return_loan
+from services.loans import (
+    borrow_item,
+    get_remaining_quota,
+    list_user_loans,
+    return_loan,
+)
 
 bp = Blueprint("loans", __name__)
 
@@ -39,5 +44,11 @@ def return_loan_view(loan_id):
 
 @bp.get("/my-loans")
 def my_loans_page():
-    loans = list_user_loans(g.current_user["id"])
-    return render_template("my_loans.html", loans=loans), 200, {"Cache-Control": "no-store"}
+    user_id = g.current_user["id"]
+    loans = list_user_loans(user_id)
+    # AC-2.5.3：限额指示直接调用单点函数 get_remaining_quota()，每次渲染
+    # 恰好一次（AC-2.5.8）；路由不手写任何 COUNT。
+    remaining = get_remaining_quota(user_id)
+    return render_template(
+        "my_loans.html", loans=loans, remaining_quota=remaining
+    ), 200, {"Cache-Control": "no-store"}

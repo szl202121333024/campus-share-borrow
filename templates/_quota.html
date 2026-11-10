@@ -1,0 +1,6 @@
+{# 限额指示的唯一文案宏（D-013、AC-2.5.3）：/items 与 /my-loans 共用本宏。
+   X = 限额 − 剩余 的换算只做一次、就在这里；数字 3 不写死，
+   引用 context processor 注入的 borrow_limit 常量（AC-2.5.9）。 #}
+{% macro quota_display(remaining) -%}
+<p class="quota-indicator">已借 {{ borrow_limit - remaining }} / {{ borrow_limit }}</p>
+{%- endmacro %}

@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% import '_quota.html' as quota with context %}
 {% block title %}物品列表 - 校园共享借阅{% endblock %}
 {% block content %}
+  {% if remaining_quota is not none %}{{ quota.quota_display(remaining_quota) }}{% endif %}
   <form method="get" action="{{ url_for('items.items_page') }}">
     <input type="text" name="q" placeholder="按名称搜索" aria-label="关键字">
     <button type="submit">搜索</button>
