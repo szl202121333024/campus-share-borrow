@@ -101,8 +101,8 @@ def start_threaded_server(app):
     raise AssertionError("并发测试服务器未能启动")
 
 
-def race_post(port, specs):
-    """specs = [(name, cookie, item_id), ...]：barrier 对齐后同时 POST /borrow。
+def race_request(port, specs):
+    """specs = [(name, cookie, path, body_dict), ...]：barrier 对齐后同时 POST。
 
     每个 worker 新建独立 TCP 连接（不是同一连接上排队）。
     返回 (results, spread_ms)：results[name] = (status, body)；
@@ -113,12 +113,12 @@ def race_post(port, specs):
     results = {}
     started_at = {}
 
-    def worker(name, cookie, item_id):
+    def worker(name, cookie, path, body):
         barrier.wait(timeout=15)
         started_at[name] = time.perf_counter()
         conn = http.client.HTTPConnection("127.0.0.1", port, timeout=15)
-        conn.request("POST", "/borrow",
-                     body=urlencode({"item_id": str(item_id)}),
+        conn.request("POST", path,
+                     body=urlencode({k: str(v) for k, v in body.items()}),
                      headers={"Content-Type": "application/x-www-form-urlencoded",
                               "Cookie": cookie})
         resp = conn.getresponse()
@@ -130,10 +130,34 @@ def race_post(port, specs):
         thread.start()
     for thread in threads:
         thread.join(timeout=60)
-    expected = {name for name, _cookie, _item in specs}
+    expected = {name for name, *_rest in specs}
     assert set(results) == expected, "所有并发请求都必须收到响应"
     spread_ms = (max(started_at.values()) - min(started_at.values())) * 1000
     return results, spread_ms
+
+
+def race_post(port, specs):
+    """并发 POST /borrow（specs = [(name, cookie, item_id), ...]）。
+
+    Story 2.3/2.4 既有调用方保持原签名；实现委托 race_request。
+    """
+    return race_request(
+        port,
+        [(name, cookie, "/borrow", {"item_id": item_id})
+         for name, cookie, item_id in specs],
+    )
+
+
+def race_return(port, specs):
+    """并发 POST /return/<loan_id>（specs = [(name, cookie, loan_id), ...]）。
+
+    Story 2.5 收口 NFR-1.3 归还真并发直压（deferred-work 2.4 遗留项）。
+    """
+    return race_request(
+        port,
+        [(name, cookie, f"/return/{loan_id}", {})
+         for name, cookie, loan_id in specs],
+    )
 
 
 def items_snapshot():
