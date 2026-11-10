@@ -4,3 +4,4 @@ table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
 th, td { border: 1px solid #ccc; padding: .4rem .6rem; text-align: left; }
 .empty-state, .error-panel { color: #666; margin-top: 1rem; }
 .error-code { font-family: monospace; color: #a33; }
+.overdue td { color: #b00020; font-weight: 600; }

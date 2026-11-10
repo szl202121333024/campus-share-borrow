@@ -67,3 +67,52 @@ def borrow_item(user_id, item_id):
     except sqlite3.IntegrityError as exc:
         raise BizError(409, "ALREADY_BORROWED") from exc
     return due_at
+
+
+def return_loan(user_id, loan_id):
+    """归还一条本人未归还记录（Story 2.2，D-014、PC-6）。
+
+    成败只由条件 UPDATE 的 rowcount 判定：WHERE 同时锁 id、user_id 与
+    returned_at IS NULL，并发第二击必然 rowcount == 0，returned_at 只写一次
+    （NFR-1.3）。归还路径绝不写物品表——停用物品的 status 属于管理员
+    唯一写入口（D-005、AC-2.2.10：services/ 检索物品表写操作命中 0）。
+    """
+    conn = get_db()
+    with write_transaction():
+        cur = conn.execute(
+            "UPDATE loans SET returned_at = ?"
+            " WHERE id = ? AND user_id = ? AND returned_at IS NULL",
+            (now_text(), loan_id, user_id),
+        )
+        if cur.rowcount == 1:
+            return
+        # rowcount == 0：一次额外 SELECT 区分「本人已归还」与「不存在/非本人」
+        row = conn.execute(
+            "SELECT returned_at FROM loans WHERE id = ? AND user_id = ?",
+            (loan_id, user_id),
+        ).fetchone()
+        if row is not None and row["returned_at"] is not None:
+            raise BizError(409, "ALREADY_RETURNED")
+        # 他人记录与不存在 id 在此合并为同一响应（D-011、AC-2.2.6）
+        raise BizError(404, "RESOURCE_NOT_FOUND")
+
+
+def list_user_loans(user_id):
+    """「我的借阅」最小可用版的唯一查询（Story 2.2；完整版在 Story 2.5）。
+
+    逾期标记在此一条 SQL 内派生：returned_at IS NULL 且 due_at 早于当前时间
+    才为逾期；归还后 returned_at 非空，is_overdue 自动归 0（AC-2.2.4），
+    模板只做渲染、不做换算。
+    """
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT l.id AS loan_id, i.name, l.borrowed_at, l.due_at, l.returned_at,"
+        "       CASE WHEN l.returned_at IS NULL AND l.due_at < ?"
+        "            THEN 1 ELSE 0 END AS is_overdue"
+        "  FROM loans l"
+        "  JOIN items i ON i.id = l.item_id"
+        " WHERE l.user_id = ?"
+        " ORDER BY l.id DESC",
+        (now_text(), user_id),
+    ).fetchall()
+    return [dict(row) for row in rows]
