@@ -157,16 +157,16 @@ def test_ac_2_1_6_double_borrow_paths_identical(client, app):
 
     # ⑥：绕过 ④⑤ 直接撞索引（模拟并发竞态），异常映射与 ④ 完全一致
     with app.app_context():
-        real_counts = loans_service._loan_counts
-        loans_service._loan_counts = lambda conn, item_id, user_id: {
-            "user_active": 0,
-            "item_active": 0,
-        }
+        real_probe = loans_service._active_loan_for_item
+        real_quota = loans_service.get_remaining_quota
+        loans_service._active_loan_for_item = lambda conn, item_id: None
+        loans_service.get_remaining_quota = lambda student_id: 3
         try:
             with pytest.raises(BizError) as excinfo:
                 loans_service.borrow_item(1, 1)
         finally:
-            loans_service._loan_counts = real_counts
+            loans_service._active_loan_for_item = real_probe
+            loans_service.get_remaining_quota = real_quota
     err = excinfo.value
     assert (err.status_code, err.error_code) == (409, "ALREADY_BORROWED")
     assert err.message == ERROR_MESSAGES["ALREADY_BORROWED"]
@@ -237,7 +237,11 @@ class _CountingConnection:
 
 
 def test_ac_2_1_9_single_queries_per_borrow(client, app, monkeypatch):
-    """AC-2.1.9：对 items 恰一条 SELECT；④⑤ 一条聚合查询（loans 读取 1 次）。"""
+    """AC-2.1.9：对 items 恰一条 SELECT；对 loans 只读两条（④ 存在性 + ⑤ 额度聚合）。
+
+    （Story 2.4 额度单点化后，④⑤ 不再共用同一条聚合——D-008 要求两条判定同事务，
+    从未要求共用一条语句；④ 刻意非聚合，避免产生第二份计数 SQL，见 D-025。）
+    """
     login(client, "2024001")
     recorded = _CountingConnection(None)
 
@@ -252,9 +256,12 @@ def test_ac_2_1_9_single_queries_per_borrow(client, app, monkeypatch):
 
     selects_on_items = [s for s in recorded.executed if re.search(r"FROM items", s)]
     selects_on_loans = [s for s in recorded.executed if re.search(r"FROM loans", s)]
+    count_aggregates = [s for s in recorded.executed
+                        if "COUNT(*)" in s and "FROM loans" in s]
     inserts = [s for s in recorded.executed if s.strip().upper().startswith("INSERT")]
     assert len(selects_on_items) == 1  # ②③ 同一行
-    assert len(selects_on_loans) == 1  # ④⑤ 同一条聚合
+    assert len(selects_on_loans) == 2  # ④ 存在性 + ⑤ 额度聚合（D-025）
+    assert len(count_aggregates) == 1  # 全借阅路径 COUNT(*) 只出现一次
     assert len(inserts) == 1
 
 
@@ -263,9 +270,10 @@ def test_ac_2_1_10_begin_immediate_only(client, app):
     db_source = (REPO_ROOT / "db.py").read_text(encoding="utf-8")
     loans_source = (REPO_ROOT / "services" / "loans.py").read_text(encoding="utf-8")
     assert "BEGIN IMMEDIATE" in db_source
-    # COUNT（_loan_counts 调用）与 INSERT 都落在 write_transaction() 块内
+    # ④⑤ 调用（存在性 + 额度聚合）与 INSERT 都落在 write_transaction() 块内
     with_block = loans_source.index("with write_transaction():")
-    assert with_block < loans_source.rindex("_loan_counts(conn, item_id, user_id)")
+    assert with_block < loans_source.rindex("_active_loan_for_item(conn, item_id)")
+    assert with_block < loans_source.rindex("get_remaining_quota(user_id)")
     assert with_block < loans_source.index("INSERT INTO loans")
 
     deferred = "BEGIN " "DEFERRED"

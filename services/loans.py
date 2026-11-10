@@ -4,12 +4,17 @@
 ①未登录 → 302（由 routes/auth.py 的统一守卫完成，本函数不会被调用）
 ②物品不存在 → 404 RESOURCE_NOT_FOUND ┐ 同一条 SELECT（D-008）
 ③物品已停用   → 409 ITEM_UNAVAILABLE  ┘
-④物品已被借出（含本人已持有）→ 409 ALREADY_BORROWED ┐ 同一条聚合查询
-⑤本人额度已满 → 409 LIMIT_EXCEEDED ┘（逾期计入额度，FR-5）
+④物品已被借出（含本人已持有）→ 409 ALREADY_BORROWED ┐ 同一 BEGIN IMMEDIATE
+⑤本人额度已满 → 409 LIMIT_EXCEEDED ┘（逾期计入额度，FR-5）  写事务内判定（D-025）
 ⑥唯一索引兜底（并发竞态）→ 捕获 IntegrityError，响应与 ④ 逐字一致
 
 整个写路径包在 write_transaction()（BEGIN IMMEDIATE）内（AR-1、D-009）：
 ②③④⑤ 的读取与 ⑥ 的 INSERT 处于同一事务，失败整体回滚（NFR-1.5）。
+
+Story 2.4 起额度单点化（D-013、AC-2.4.7）：④ 改为非聚合单行存在性查询，
+⑤ 调用全项目唯一额度聚合 get_remaining_quota()；两条读取仍同处一个
+BEGIN IMMEDIATE 写事务，快照一致性由事务串行化保证，D-008 意图不变
+（订正记录见 decision-log D-025，test_loans 的 2.1 断言随之同步）。
 """
 
 import sqlite3
@@ -18,20 +23,33 @@ from config import BORROW_LIMIT, BizError
 from db import due_text, get_db, now_text, write_transaction
 
 
-def _loan_counts(conn, item_id, user_id):
-    """④⑤ 共用的唯一一条聚合查询：一次算出本人额度占用与该物品的未归还记录数。
+def _active_loan_for_item(conn, item_id):
+    """④ 存在性判定：该物品是否已有未归还记录（含本人持有）。
 
-    逾期记录 returned_at IS NULL，天然计入 user_active（AC-2.1.12）。
+    刻意写成非聚合单行查询（无 COUNT(*)）：额度计数 SQL 全项目只允许
+    存在于 get_remaining_quota() 一处，④ 若用聚合就会造出第二份计数（AC-2.4.7）。
     """
-    row = conn.execute(
-        "SELECT COALESCE(SUM(CASE WHEN l.user_id = ? THEN 1 ELSE 0 END), 0) AS user_active,"
-        "       COALESCE(SUM(CASE WHEN l.item_id = ? THEN 1 ELSE 0 END), 0) AS item_active"
-        "  FROM loans l"
-        " WHERE l.returned_at IS NULL"
-        "   AND (l.user_id = ? OR l.item_id = ?)",
-        (user_id, item_id, user_id, item_id),
+    return conn.execute(
+        "SELECT user_id FROM loans"
+        " WHERE item_id = ? AND returned_at IS NULL LIMIT 1",
+        (item_id,),
     ).fetchone()
-    return dict(row)
+
+
+def get_remaining_quota(student_id):
+    """额度唯一真相（PC-7、D-013、AC-2.4.7）：函数体内只有这一条 COUNT(*) 聚合。
+
+    返回「剩余可借数」（借满 3 件返回 0）；前置校验（本函数被 borrow_item ⑤
+    调用）与页面限额指示（Story 2.5）共用这一处，逾期记录 returned_at IS NULL
+    天然计入（AC-2.1.12）。
+    """
+    conn = get_db()
+    row = conn.execute(
+        "SELECT COUNT(*) AS active_count FROM loans"
+        " WHERE user_id = ? AND returned_at IS NULL",
+        (student_id,),
+    ).fetchone()
+    return BORROW_LIMIT - row["active_count"]
 
 
 # ⑥ 唯一索引兜底的物理证据特征串：仅这一种 IntegrityError 映射为 409。
@@ -53,11 +71,11 @@ def borrow_item(user_id, item_id):
             if item["status"] == "unavailable":
                 raise BizError(409, "ITEM_UNAVAILABLE")
 
-            # ④⑤：一条聚合查询同时判定（D-008、D-013）
-            counts = _loan_counts(conn, item_id, user_id)
-            if counts["item_active"] > 0:
+            # ④：存在性判定（非聚合，避免与额度计数重复）
+            if _active_loan_for_item(conn, item_id) is not None:
                 raise BizError(409, "ALREADY_BORROWED")
-            if counts["user_active"] >= BORROW_LIMIT:
+            # ⑤：额度调用全库唯一真相 get_remaining_quota()（同一连接、同一事务）
+            if get_remaining_quota(user_id) <= 0:
                 raise BizError(409, "LIMIT_EXCEEDED")
 
             # 正常路径下 ⑥ 几乎不可达（ADR-002 §4），仅并发竞态时触发；
