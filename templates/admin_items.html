@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}后台管理 - 校园共享借阅{% endblock %}
+{% block content %}
+  <h2>物品管理</h2>
+
+  <form method="post" action="{{ url_for('admin.admin_items') }}">
+    <p>
+      <label for="item_name">名称</label>
+      <input id="item_name" type="text" name="name" maxlength="{{ max_name_len }}" required>
+    </p>
+    <p>
+      <label for="item_category">类别</label>
+      <select id="item_category" name="category" required>
+        {% for value in categories %}
+        <option value="{{ value }}">{{ '图书' if value == 'book' else '器材' }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <button type="submit">添加物品</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>类别</th>
+        <th>状态</th>
+        <th>应还日期</th>
+        <th>在借人</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in item_list %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ '图书' if item.category == 'book' else '器材' }}</td>
+        <td>
+          {% if item.display_state == 'unavailable' %}已停用
+          {% elif item.display_state == 'borrowed' %}在借
+          {% else %}可借{% endif %}
+        </td>
+        <td>{{ item.due_at if item.borrower_name and item.display_state != 'unavailable' else '—' }}</td>
+        <td>{{ item.borrower_name or '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">暂无物品</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

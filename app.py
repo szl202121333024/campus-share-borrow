@@ -13,7 +13,7 @@ from flask import Flask, redirect, render_template, url_for
 from flask.sessions import SecureCookieSession, SecureCookieSessionInterface
 
 import db as db_module
-from config import BORROW_LIMIT, ERROR_MESSAGES, BizError
+from config import BORROW_LIMIT, ERROR_MESSAGES, MAX_NAME_LEN, BizError
 from db import BootstrapError, close_db
 
 HOST = "127.0.0.1"
@@ -76,6 +76,7 @@ def create_app():
     app.session_interface = PermanentCookieSessionInterface()
     app.teardown_appcontext(close_db)
 
+    from routes.admin import bp as admin_bp
     from routes.auth import bp as auth_bp
     from routes.items import bp as items_bp
     from routes.loans import bp as loans_bp
@@ -83,6 +84,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(items_bp)
     app.register_blueprint(loans_bp)
+    app.register_blueprint(admin_bp)
 
     @app.get("/")
     def index():
@@ -91,7 +93,11 @@ def create_app():
     @app.context_processor
     def inject_borrow_limit():
         # AC-2.5.9：模板里的数字 3 不写死，引用 config 唯一常量。
-        return {"borrow_limit": BORROW_LIMIT}
+        # Story 3.1：名称上限 50 同理，只注入 MAX_NAME_LEN（AC-3.1.4 口径）。
+        return {
+            "borrow_limit": BORROW_LIMIT,
+            "max_name_len": MAX_NAME_LEN,
+        }
 
     @app.errorhandler(BizError)
     def handle_biz_error(err):
