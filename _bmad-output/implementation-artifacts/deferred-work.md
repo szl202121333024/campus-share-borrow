@@ -45,3 +45,15 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-2-return-item-conditional-update.md`
   summary: /my-loans 仅最小可用版
   evidence: 本故事按 epics.md「规模」条款实现归还入口 + 逾期标红 + is_overdue 单 SQL 派生；额度指示与完整版在 Story 2.5（额度只有一处真相）收口。停用状态以直接 SQL 构造系本故事技术要点明确授权，管理员停用入口属 Story 3.3。
+
+---
+
+## Story 2.3: NFR-1.1 同一物品并发借阅（部分唯一索引物理兜底）
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-nfr11-concurrent-borrow.md`
+  summary: NFR-1.3 归还真并发直压仍待补
+  evidence: Story 2.2 的 20 轮双会话冒烟已证机制连通；本故事已交付真实 threaded 服务器脚手架（start_threaded_server + race helper），归还直压验收建议在 Story 2.4 复用同一脚手架补齐，不得继续只靠 test_client 冒烟。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-nfr11-concurrent-borrow.md`
+  summary: 测试脚手架行为非产品功能
+  evidence: 20 轮间以底层 SQL 标记归还做重置、以及用连接层替身注入 FOREIGN KEY 失败（AC-2.3.10），均为 tests/ 内脚手架；生产代码路径不受影响，评审时不要当作产品能力。

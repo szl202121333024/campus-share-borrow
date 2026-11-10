@@ -28,6 +28,8 @@ Thumbs.db
 
 # 运行产物
 *.log
+# Story 2.3 SM-2 验收证据：20 轮真并发日志必须入库（AC-2.3.9），豁免于 *.log
+!_bmad-output/implementation-artifacts/concurrency-nfr11-20-rounds.log
 instance/
 .pytest_cache/
 # 受限环境下的 pytest 临时根（见 pytest.ini 说明）
