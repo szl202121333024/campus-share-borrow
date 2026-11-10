@@ -1,9 +1,9 @@
 # BMAD sprint planning output
 # 生成时间：2026-11-09 11:51
 # Readiness gate：PASS
-# 下一动作：bmad-build Story 2.2（归还物品）
+# 下一动作：bmad-build Story 2.3（NFR-1.1 并发借阅白盒验收）
 generated: "11-09-2026 11:51"
-last_updated: "11-10-2026 00:02"
+last_updated: "11-10-2026 08:12"
 project: "campus-share-borrow"
 project_key: "campus-share-borrow"
 tracking_system: "file-system"
@@ -18,7 +18,7 @@ development_status:
 
   epic-2: in-progress
   2-1-借阅物品六步判定与应还日期: done
-  2-2-归还物品条件-update停用物品保持停用: backlog
+  2-2-归还物品条件-update停用物品保持停用: done
   2-3-nfr-1-1-同一物品并发借阅部分唯一索引的物理兜底: backlog
   2-4-nfr-1-2-同一用户并发超额-begin-immediate的事务原子性: backlog
   2-5-我的借阅与限额指示额度只有一处真相: backlog
