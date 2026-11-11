@@ -53,6 +53,7 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-nfr11-concurrent-borrow.md`
   summary: NFR-1.3 归还真并发直压仍待补
   evidence: Story 2.2 的 20 轮双会话冒烟已证机制连通；本故事已交付真实 threaded 服务器脚手架（start_threaded_server + race helper），归还直压验收建议在 Story 2.4 复用同一脚手架补齐，不得继续只靠 test_client 冒烟。
+  **RESOLVED (Story 2.5)**：`tests/test_return_concurrency.py` 用同一脚手架做真并发 20 轮归还（恰 {302,409} + `returned_at` 单次写入），逐轮日志 `concurrency-nfr13-return-20-rounds.log` 已入库。
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-nfr11-concurrent-borrow.md`
   summary: 测试脚手架行为非产品功能
@@ -82,6 +83,7 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-5-my-loans-quota-indicator.md`
   summary: 20 轮证据日志被每次测试重写，优化留待项目收尾
   evidence: concurrency-nfr11/nfr12 两份日志由用例无条件覆写（仅时间戳变化）。用户 2026-11-10 指示：不着急，整个项目跑完再优化；候选方案为 conftest.py 增加「已存在则不覆盖」判断，或只保留首轮样本作为只读证据。写盘点：tests/test_concurrency.py、tests/test_quota_concurrency.py、tests/test_return_concurrency.py（Story 3.2 又追加 tests/test_admin_delete.py 的两份日志，累计五处）。
+  **RESOLVED (Story 3.4 收口)**：`tests/concurrency_kit.py::write_evidence_log()` 统一实现「已存在则不覆盖」，五处写日志的用例（含 Story 3.3 新增的两份，共七份）全部改走该函数。复跑 `tests/test_return_concurrency.py` 后 `git status` 对 concurrency-nfr13-return-20-rounds.log 零变更，证明工作树不再被证据日志污染。刷新证据的方式改为「手动删除对应 .log 后重跑」。
 
 ---
 
@@ -114,6 +116,7 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
   summary: 并发证据日志被每次测试重写（累计五份）
   evidence: 沿用 Story 2.5 的延期项；Story 3.2 新增 concurrency-story32-double-delete-20-rounds.log 与 concurrency-story32-delete-vs-borrow-20-rounds.log，两份均由用例无条件覆写。项目收尾时与 nfr11/nfr12/nfr13 一并改为「已存在则不覆盖」。
+  **RESOLVED (Story 3.4 收口)**：两份日志改走 `write_evidence_log()`，与 nfr11/nfr12/nfr13 同一口径（见 Story 2.5 段落的收口说明）。
 
 ---
 
@@ -130,7 +133,25 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
   summary: AC-3.4.4~3.4.7（四态组合矩阵、NFR-1.4 并发交叉比对）留在 Story 3.4 收口
   evidence: 本故事已交付两条端点与 AC-3.4.5 的 grep 判据（`UPDATE items` 恰两处），但四态组合（available / 在借 / unavailable / unavailable+在借）的逐组合渲染断言、`/my-loans` 四态、以及并发借阅后「列表派生态 ⇔ loans 未归还计数」的交叉比对仍属 Story 3.4 的回归范围，未提前合并进本故事。
+  **RESOLVED (Story 3.4)**：`tests/test_four_state_matrix.py` 逐组合断言 + 单页矩阵交叉渲染（AC-3.4.4）、派生唯一实现的行为侧与结构侧断言（AC-3.4.6）；`tests/test_nfr14_cross_check.py` 以 20 轮借阅对抗 + 20 轮四操作交叉做「三张表 ⇔ loans」比对（AC-3.4.7）。证据见 spec-3-4 §2~§4。
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
   summary: 并发证据日志被每次测试重写（累计七份）
   evidence: 沿用 Story 2.5/3.2 的延期项；本故事新增 concurrency-story33-double-disable-20-rounds.log 与 concurrency-story34-double-restore-20-rounds.log（`.gitignore` 已加白名单）。项目收尾时与既有五份一并改为「已存在则不覆盖」。
+  **RESOLVED (Story 3.4 收口)**：七份日志全部改走 `write_evidence_log()`，Story 3.4 新增的两份 NFR-1.4 日志同样照此口径写入（首次生成、之后只读）。
+
+---
+
+## Story 3.4: 四态组合矩阵与 NFR-1.4 并发交叉比对
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-four-state-matrix-and-nfr14.md`
+  summary: 交叉比对的采样点在「四个并发请求全部返回之后」
+  evidence: NFR-1.4 的判据实现为「每轮四个请求 join 完成后，再分别读库与三张页面」（tests/test_nfr14_cross_check.py::_cross_check）。这个窗口内测试进程不再发起写请求，因此读到的是稳定快照；断言对象是「并发结束后的系统自洽」，不是「事务进行中的逐帧观测」。事务级实时观测需要 WAL 快照隔离下的外部读者，超出 v1 规模（NFR-2）。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-four-state-matrix-and-nfr14.md`
+  summary: 四操作交叉实验每轮新建物品，物品表会随轮次增长
+  evidence: 为了每轮都从「available + 1 条未归还记录」这个确定的起点出发，脚手架用直连 SQL 新建物品而不是复用同一件。20 轮实验后临时库里有 20 余件物品，属测试数据构造（tests/ 内），与产品行为无关；生产库不经过这条路径。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-four-state-matrix-and-nfr14.md`
+  summary: 证据日志改为「已存在则不覆盖」后的刷新口径
+  evidence: 需要重新生成某份并发日志时，必须先手动删除 `_bmad-output/implementation-artifacts/` 下对应的 `.log` 文件再跑用例；这是有意的取舍——宁可证据「旧而真」，也不要「新而脏」地把既有验收数据覆盖成另一轮的结果。
