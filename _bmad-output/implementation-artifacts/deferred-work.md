@@ -81,7 +81,7 @@ This file tracks work items that were identified during implementation but defer
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-5-my-loans-quota-indicator.md`
   summary: 20 轮证据日志被每次测试重写，优化留待项目收尾
-  evidence: concurrency-nfr11/nfr12 两份日志由用例无条件覆写（仅时间戳变化）。用户 2026-11-10 指示：不着急，整个项目跑完再优化；候选方案为 conftest.py 增加「已存在则不覆盖」判断，或只保留首轮样本作为只读证据。三处写盘点：tests/test_concurrency.py、tests/test_quota_concurrency.py、tests/test_return_concurrency.py。
+  evidence: concurrency-nfr11/nfr12 两份日志由用例无条件覆写（仅时间戳变化）。用户 2026-11-10 指示：不着急，整个项目跑完再优化；候选方案为 conftest.py 增加「已存在则不覆盖」判断，或只保留首轮样本作为只读证据。写盘点：tests/test_concurrency.py、tests/test_quota_concurrency.py、tests/test_return_concurrency.py（Story 3.2 又追加 tests/test_admin_delete.py 的两份日志，累计五处）。
 
 ---
 
@@ -94,3 +94,23 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-admin-create-item-and-list.md`
   summary: 400 响应未回显表单输入值
   evidence: FR-6 校验失败统一返回 400 INVALID_INPUT + 通用错误页（error.html），不回显/重渲染表单。AC-3.1.4/3.1.5 仅要求状态码、错误码与零写入，均已满足；「校验失败后表单保留输入」属体验优化，PRD SM-C3 明确界面美观度不优化，留待后续迭代。
+
+---
+
+## Story 3.2: 删除物品（在借拦截 + 同事务级联清理）
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
+  summary: CSRF 保护（POST /admin/items/<id>/delete）
+  evidence: 沿用 Story 1.2 起已裁决的延期口径（PRD §6 明确不做）。删除写路径与新增/借阅/归还一样不带 CSRF token；v1 局域网单人演示场景接受该风险，记录不阻塞。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
+  summary: 确认页不预告「在借不可删」
+  evidence: AC-3.2.6 只要求确认页含物品名称与「确认删除」按钮；在借物品提交后由服务层返回 409 ITEM_IN_BORROW。确认页不复制在借判定（PC-1），「灰掉删除按钮」若要做应由管理列表的派生状态驱动，属界面体验优化（PRD SM-C3），留待后续迭代。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
+  summary: 外键兜底分支 HTTP 不可达，仅白盒可达
+  evidence: 删除与借阅都在 BEGIN IMMEDIATE 内完成判定，写锁把两者串行化，业务拦截（②）与外键兜底（④）之间没有可从 HTTP 到达的竞态窗口。`test_fk_backstop_maps_to_item_in_borrow_and_restores_history` 用连接层替身让 ② 漏判，专门锁定 ④ 的 409 映射与回滚；评审时不得把它当作线上可复现路径。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
+  summary: 并发证据日志被每次测试重写（累计五份）
+  evidence: 沿用 Story 2.5 的延期项；Story 3.2 新增 concurrency-story32-double-delete-20-rounds.log 与 concurrency-story32-delete-vs-borrow-20-rounds.log，两份均由用例无条件覆写。项目收尾时与 nfr11/nfr12/nfr13 一并改为「已存在则不覆盖」。

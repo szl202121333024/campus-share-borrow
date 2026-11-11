@@ -2,7 +2,7 @@
 
 校园共享器材 / 图书借阅系统 —— 研究生课程「AI 敏捷交付」作业。
 
-> 状态：**阶段 4 实施中**（`bmad-sprint-planning` Gate PASS；Story 1.1~1.3、2.1~2.5、**3.1** 已交付，Epic 3 进行中，141 个测试全绿；下一个 Story 3.2）。规划基线锁定：PRD `status: final`；ADR-001 ~ ADR-007（阶段 2 定稿）+ ADR-008（阶段 4 依 D-024 追加）；`epics.md` 定稿 3 史诗 / 12 故事 / 110 条 AC。
+> 状态：**阶段 4 实施中**（`bmad-sprint-planning` Gate PASS；Story 1.1~1.3、2.1~2.5、**3.1~3.2** 已交付，Epic 3 进行中，165 个测试全绿；下一个 Story 3.3）。规划基线锁定：PRD `status: final`；ADR-001 ~ ADR-007（阶段 2 定稿）+ ADR-008（阶段 4 依 D-024 追加）；`epics.md` 定稿 3 史诗 / 12 故事 / 110 条 AC。
 
 ## 项目基线（锁定，不再发散）
 
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-启动后访问 http://127.0.0.1:5000/items （匿名可读）。首次启动自动建库（`campus_share_borrow.sqlite` 单文件）并写入种子数据；删除该文件重启即回到初始状态。启动失败会打印一行中文原因并以非零码退出。用管理员账号（A001）登录后，`/admin/items` 提供物品新增与含停用项的完整管理清单（Story 3.1；v1 无编辑功能，裁决见 decision-log）。
+启动后访问 http://127.0.0.1:5000/items （匿名可读）。首次启动自动建库（`campus_share_borrow.sqlite` 单文件）并写入种子数据；删除该文件重启即回到初始状态。启动失败会打印一行中文原因并以非零码退出。用管理员账号（A001）登录后，`/admin/items` 提供物品新增、删除（有未归还记录时 409 拦截）与含停用项的完整管理清单（Story 3.1~3.2；v1 无编辑功能，裁决见 decision-log）。
 
 测试：`python -m pytest tests/ -v`
 
@@ -76,7 +76,7 @@ python app.py
 | 1 | `/bmad-prd`：FR-1~FR-6、NFR-1~NFR-2、明确不做 | ✅ 完成（`prd.md` `status: final`；决策 D-001~D-016） |
 | 2 | `/bmad-architecture`：ADR（含两次诱导否决） | ✅ 完成（**ADR-001 ~ ADR-007**；决策 D-017~D-021） |
 | 3 | `/bmad-create-epics-and-stories`：3 史诗 / 12 故事 + `project-context.md` | ✅ 完成（`epics.md` 定稿；决策 D-022；Gate 证据 `docs/evidence/gate-stage3.md`） |
-| 4 | `/bmad-sprint-planning` 取得 PASS，逐故事实施 | 🔄 进行中（Story 1.1~1.3 ✅；Story 2.1~2.5 ✅，**Epic 2 done**；Story 3.1 ✅；下一个：Story 3.2） |
+| 4 | `/bmad-sprint-planning` 取得 PASS，逐故事实施 | 🔄 进行中（Story 1.1~1.3 ✅；Story 2.1~2.5 ✅，**Epic 2 done**；Story 3.1、3.2 ✅；下一个：Story 3.3） |
 | 5 | 实验 A 对照实验 + `retrospective.md` | 未开始 |
 
 ## 关键产物（已产出）
@@ -88,7 +88,7 @@ python app.py
 | 史诗与故事（3 史诗 / 12 故事 / 110 条 AC） | [`epics.md`](_bmad-output/planning-artifacts/epics.md) |
 | 项目实现规约（15 条） | [`project-context.md`](_bmad-output/project-context.md) |
 | 阶段 3 评审闸门证据（可复跑脚本 + 实测输出） | [`gate-stage3.md`](docs/evidence/gate-stage3.md) |
-| 决策日志（D-001~D-022） | [`decision-log.md`](decision-log.md) |
+| 决策日志（D-001~D-026） | [`decision-log.md`](decision-log.md) |
 
 ## AI 使用声明
 
