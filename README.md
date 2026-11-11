@@ -93,6 +93,8 @@ python app.py
 | Story 3.4 终局回归证据（四态矩阵 + NFR-1.4 交叉比对） | [`spec-3-4-four-state-matrix-and-nfr14.md`](_bmad-output/implementation-artifacts/spec-3-4-four-state-matrix-and-nfr14.md) |
 | 并发实验逐轮证据日志（9 份，共 200 轮真并发） | `_bmad-output/implementation-artifacts/concurrency-*.log` |
 | 决策日志（D-001~D-027） | [`decision-log.md`](decision-log.md) |
+| 最终实验报告（学号 2601027150 / 宋志林） | [`2601027150-宋志林-元服务基础功能五实验报告.md`](2601027150-宋志林-元服务基础功能五实验报告.md) |
+| 回顾与实验 A 结论 | [`retrospective.md`](retrospective.md) |
 
 ## AI 使用声明
 
