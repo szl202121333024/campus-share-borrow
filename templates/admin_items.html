@@ -27,6 +27,7 @@
         <th>状态</th>
         <th>应还日期</th>
         <th>在借人</th>
+        <th>操作</th>
       </tr>
     </thead>
     <tbody>
@@ -41,9 +42,12 @@
         </td>
         <td>{{ item.due_at if item.borrower_name and item.display_state != 'unavailable' else '—' }}</td>
         <td>{{ item.borrower_name or '—' }}</td>
+        <td>
+          <a href="{{ url_for('admin.delete_confirm_page', item_id=item.id) }}">删除</a>
+        </td>
       </tr>
       {% else %}
-      <tr><td colspan="5">暂无物品</td></tr>
+      <tr><td colspan="6">暂无物品</td></tr>
       {% endfor %}
     </tbody>
   </table>

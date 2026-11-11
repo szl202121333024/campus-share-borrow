@@ -1,16 +1,17 @@
-"""管理蓝图（Story 3.1，FR-6 新增 + 管理列表）。
+"""管理蓝图（Story 3.1 新增与列表 + Story 3.2 删除，FR-6）。
 
-权限边界（D-012、PC-10）——蓝图级统一拦截，全库唯一的 role 授权判定点：
+权限边界（D-012、D-026、PC-10）——蓝图级统一拦截，全库唯一的 role 授权判定点：
 - bp = Blueprint(..., url_prefix="/admin")：守卫与路由同前缀，物理上不会漏挂；
-- @bp.before_request：进入本蓝图的任何请求（含未来 3.2~3.4 的删除/停用/恢复）
-  先过这里——未登录 302 → /login?next=（AC-3.1.1），非管理员 403 FORBIDDEN
-  （AC-3.1.2）。业务代码（路由体与 services/）内不得再出现任何 role 判断；
+- @bp.before_request：进入本蓝图的任何请求（含 Story 3.2 的确认页与删除 POST、
+  未来 3.3~3.4 的停用/恢复）先过这里——未登录 302 → /login?next=，
+  非管理员 403 FORBIDDEN。业务代码（路由体与 services/）内不得再出现
+  任何 role 判断；
 - routes/auth.py 的全站守卫只保留 /admin 前缀的「未登录 302」（认证拦截），
   不含任何 role 分支——授权语义只在本文件成立一处。
 
 路由只做三件事：收集参数 → 调 services → 渲染/映射异常（PC-1）。
-本故事只提供新增与列表：编辑物品不在 v1（改名会破坏借阅历史的名称一致性，
-v1 已按 D-007 砍掉快照字段——人类裁决「只增不删改」）；删除/停用/恢复属 Story 3.2~3.4。
+v1 无编辑功能（人类裁决「只增不删改」中的改名禁令，见 services/admin.py）；
+停用/恢复属 Story 3.3~3.4。
 """
 
 from flask import (
@@ -23,7 +24,7 @@ from flask import (
 )
 
 from config import BizError
-from services.admin import CATEGORIES, create_item
+from services.admin import CATEGORIES, create_item, delete_item, get_item
 from services.auth import load_current_user
 from services.items import list_items_with_state
 
@@ -54,3 +55,24 @@ def admin_items():
         200,
         {"Cache-Control": "no-store"},
     )
+
+
+@bp.get("/items/<int:item_id>/delete")
+def delete_confirm_page(item_id):
+    """删除确认页（AC-3.2.6）：GET 只渲染名称与「确认删除」按钮，绝不删除。"""
+    item = get_item(item_id)
+    if item is None:
+        raise BizError(404, "RESOURCE_NOT_FOUND")
+    return (
+        render_template("admin_delete_confirm.html", item=item),
+        200,
+        {"Cache-Control": "no-store"},
+    )
+
+
+@bp.post("/items/<int:item_id>/delete")
+def delete_item_view(item_id):
+    """删除物品（Story 3.2）：409/404 由服务层抛 BizError 统一映射（PC-9）。"""
+    delete_item(item_id)
+    flash("已删除")
+    return redirect(url_for("admin.admin_items"))

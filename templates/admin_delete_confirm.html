@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}确认删除 - 校园共享借阅{% endblock %}
+{% block content %}
+  <h2>确认删除物品</h2>
+  <p>物品名称：<strong>{{ item.name }}</strong></p>
+  <p>类别：{{ '图书' if item.category == 'book' else '器材' }}</p>
+  <p>状态：
+    {% if item.status == 'unavailable' %}已停用{% else %}未停用{% endif %}
+  </p>
+  <form method="post" action="{{ url_for('admin.delete_item_view', item_id=item.id) }}">
+    <button type="submit">确认删除</button>
+  </form>
+  <p><a href="{{ url_for('admin.admin_items') }}">返回列表</a></p>
+{% endblock %}
