@@ -40,6 +40,9 @@ Thumbs.db
 # Story 3.3 / 3.4 状态迁移幂等证据：重复停用 / 重复恢复各 20 轮并发
 !_bmad-output/implementation-artifacts/concurrency-story33-double-disable-20-rounds.log
 !_bmad-output/implementation-artifacts/concurrency-story34-double-restore-20-rounds.log
+# Story 3.4 NFR-1.4 证据：借阅对抗交叉比对 / 借阅+归还+删除+停用四操作交叉各 20 轮
+!_bmad-output/implementation-artifacts/concurrency-story34-nfr14-borrow-crosscheck-20-rounds.log
+!_bmad-output/implementation-artifacts/concurrency-story34-nfr14-four-way-20-rounds.log
 instance/
 .pytest_cache/
 # 受限环境下的 pytest 临时根（见 pytest.ini 说明）
