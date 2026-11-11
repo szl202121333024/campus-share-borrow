@@ -1,9 +1,9 @@
 # BMAD sprint planning output
 # 生成时间：2026-11-09 11:51
 # Readiness gate：PASS
-# 下一动作：bmad-build Story 3.4（恢复上架已随 3.3 交付：剩余四态组合矩阵 + NFR-1.4 交叉比对）
+# 下一动作：全部 12 个故事已交付，Epic 1~3 收官；进入阶段 5（实验 A + 回顾）与最终 Reviewer Gate
 generated: "11-09-2026 11:51"
-last_updated: "11-11-2026 19:30"
+last_updated: "11-11-2026 20:20"
 project: "campus-share-borrow"
 project_key: "campus-share-borrow"
 tracking_system: "file-system"
@@ -24,11 +24,11 @@ development_status:
   2-5-我的借阅与限额指示额度只有一处真相: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-管理员新增物品与管理列表: done
   3-2-删除物品在借拦截与同事务级联清理: done
   3-3-停用物品在借也能停用归还后仍停用: done
-  3-4-恢复上架与状态机边界回归: in-progress
+  3-4-恢复上架与状态机边界回归: done
   epic-3-retrospective: optional
 
   project-retrospective: optional
