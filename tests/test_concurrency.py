@@ -18,7 +18,6 @@ import sqlite3
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
 from urllib.parse import urlencode
 
 import pytest
@@ -29,16 +28,9 @@ from config import ERROR_MESSAGES, BizError
 from concurrency_kit import (  # Story 2.3/2.4 共用同一份真并发脚手架
     client_borrow, client_login, direct_connect, direct_query,
     items_snapshot, item_row_state_text, login_over_http, race_post,
-    seed_password, start_threaded_server,
+    seed_password, start_threaded_server, write_evidence_log,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-LOG_PATH = (
-    REPO_ROOT
-    / "_bmad-output"
-    / "implementation-artifacts"
-    / "concurrency-nfr11-20-rounds.log"
-)
 ROUNDS = 20
 TARGET_ITEM_NAME = "投影仪"
 STUDENT_A = "2024001"
@@ -109,8 +101,7 @@ def test_ac_2_3_1_to_2_3_3_8_9_concurrent_borrow_20_rounds(app):
                 f" | 胜方=user_id {holder['user_id']} (loan_id={holder['id']})"
                 f" | active_count=1 OK")
     finally:
-        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        LOG_PATH.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+        write_evidence_log("concurrency-nfr11-20-rounds.log", log_lines)
 
     # AC-2.3.8：失败无副作用——loans 总行数 = 成功数；items 与快照逐字段一致
     assert success_count == ROUNDS

@@ -33,15 +33,10 @@ from concurrency_kit import (
     login_over_http,
     race_post,
     start_threaded_server,
+    write_evidence_log,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-LOG_PATH = (
-    REPO_ROOT
-    / "_bmad-output"
-    / "implementation-artifacts"
-    / "concurrency-nfr12-20-rounds.log"
-)
 ROUNDS = 20
 STUDENT_A = "2024001"
 STUDENT_B = "2024002"
@@ -139,8 +134,7 @@ def test_ac_2_4_1_to_2_4_3_concurrent_quota_20_rounds(app):
                 f" | 失败方={loser} LIMIT_EXCEEDED"
                 f" | user_active={final_count} OK")
     finally:
-        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        LOG_PATH.write_text("\n".join(log_lines) + "\n", encoding="utf-8")
+        write_evidence_log("concurrency-nfr12-20-rounds.log", log_lines)
 
     assert ok_rounds == ROUNDS, "AC-2.4.3：20 轮必须全部满足 AC-2.4.1/2.4.2"
     # 20 轮中出现过 4 的记录数一差不可能：上面每轮已逐轮断言 ==3，

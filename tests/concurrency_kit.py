@@ -13,9 +13,34 @@ import socket
 import sqlite3
 import threading
 import time
+from pathlib import Path
 from urllib.parse import urlencode
 
 import db as db_module
+
+EVIDENCE_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "_bmad-output"
+    / "implementation-artifacts"
+)
+
+
+def write_evidence_log(filename, lines):
+    """写并发证据日志；**已存在则不覆盖**（项目收尾收口 deferred-work 遗留项）。
+
+    Story 2.5 起就记着一笔技术债：20 轮并发日志由用例无条件覆写，每次跑测试
+    都产生一份「只有时间戳不同」的 diff，把已入库的验收证据改成另一轮的数据。
+    人类 2026-11-10 指示「整个项目跑完再优化」，本函数即该裁决的落地口径：
+    证据只保留首次生成的那一份，重复跑测试不再产生脏工作树。
+
+    返回 (path, 是否本次写入)。需要刷新证据时手动删除对应 .log 后重跑。
+    """
+    path = EVIDENCE_DIR / filename
+    if path.exists():
+        return path, False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path, True
 
 
 def seed_password(student_id):

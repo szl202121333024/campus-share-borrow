@@ -27,6 +27,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 import db as db_module
+from concurrency_kit import write_evidence_log
 from config import ERROR_MESSAGES
 from services.loans import get_remaining_quota
 
@@ -34,7 +35,6 @@ ADMIN = ("A001", "admin123456")
 STUDENT = ("2024001", "stu123456")
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-LOG_DIR = SOURCE_ROOT / "_bmad-output" / "implementation-artifacts"
 
 # 种子数据里名称唯一的两件物品，便于按名称定位列表行
 BOOK = "算法图解"
@@ -161,11 +161,6 @@ def _function_body(name):
     match = re.search(r"\ndef [a-z_]+\(", rest)
     body = rest if match is None else rest[: match.start()]
     return DOCSTRING.sub("", body)
-
-
-def _write_log(filename, lines):
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    (LOG_DIR / filename).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------- AC-3.3.1
@@ -661,8 +656,7 @@ def test_concurrent_double_disable_is_idempotent_20_rounds(app, client):
         "-" * 72,
     ]
     lines += _race_state_change(app, "unavailable", item_id, "available")
-    _write_log("concurrency-story33-double-disable-20-rounds.log", lines)
-
+    write_evidence_log("concurrency-story33-double-disable-20-rounds.log", lines)
     assert _item_status(app, item_id) == "unavailable"
     assert _loans_snapshot(app) == loans_before
 
@@ -682,7 +676,7 @@ def test_concurrent_double_restore_is_idempotent_20_rounds(app, client):
         "-" * 72,
     ]
     lines += _race_state_change(app, "available", item_id, "unavailable")
-    _write_log("concurrency-story34-double-restore-20-rounds.log", lines)
+    write_evidence_log("concurrency-story34-double-restore-20-rounds.log", lines)
 
     assert _item_status(app, item_id) == "available"
     assert _loans_snapshot(app) == loans_before

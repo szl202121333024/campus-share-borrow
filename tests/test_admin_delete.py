@@ -28,12 +28,12 @@ from concurrency_kit import (
     login_over_http,
     race_request,
     start_threaded_server,
+    write_evidence_log,
 )
 
 ADMIN = ("A001", "admin123456")
 STUDENT = ("2024001", "stu123456")
 SOURCE_ROOT = Path(__file__).resolve().parents[1]
-LOG_DIR = SOURCE_ROOT / "_bmad-output" / "implementation-artifacts"
 ROUNDS = 20
 
 
@@ -137,11 +137,6 @@ def _direct_connect_with_fk():
     conn = direct_connect()
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
-
-
-def _write_log(filename, lines):
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    (LOG_DIR / filename).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 class _EmptyCursor:
@@ -597,7 +592,8 @@ def test_concurrent_double_delete_exactly_one_wins(app):
                 f" | item=已删除 loans=0 OK"
             )
     finally:
-        _write_log("concurrency-story32-double-delete-20-rounds.log", log_lines)
+        write_evidence_log(
+            "concurrency-story32-double-delete-20-rounds.log", log_lines)
 
 
 # ---------------------------------------------------------------- 真并发 20 轮 B
@@ -662,7 +658,8 @@ def test_concurrent_delete_versus_borrow_never_orphans_active_loan(app):
                 f" | item_exists={item_exists} active={active} OK"
             )
     finally:
-        _write_log("concurrency-story32-delete-vs-borrow-20-rounds.log", log_lines)
+        write_evidence_log(
+            "concurrency-story32-delete-vs-borrow-20-rounds.log", log_lines)
 
 
 # ---------------------------------------------------------------- 真并发 20 轮 C
