@@ -303,7 +303,12 @@ def test_d_012_admin_blueprint_guard_is_before_request_not_inline():
 # ---------- 只增不删改（人类裁决）：编辑/删除/停用/恢复端点在 3.1 不存在 ----------
 
 
-def test_story_3_1_scope_only_create_and_list_no_edit_or_delete_endpoints(client, app):
+def test_no_edit_or_state_change_endpoints_registered(client, app):
+    """范围哨兵（3.1 只增 + 3.2 只增删）：编辑/停用/恢复端点在 v1 不存在。
+
+    删除端点已随 Story 3.2 注册（见 test_admin_delete.py），本哨兵继续锁死
+    「无编辑」的人类裁决与 3.3~3.4 才有的状态变更入口。
+    """
     _login_admin(client)
     before = _items_snapshot(app)
     first_item_id = before[0][0]
@@ -311,7 +316,6 @@ def test_story_3_1_scope_only_create_and_list_no_edit_or_delete_endpoints(client
     for method, path in (
         ("GET", f"/admin/items/{first_item_id}/edit"),
         ("POST", f"/admin/items/{first_item_id}/edit"),
-        ("POST", f"/admin/items/{first_item_id}/delete"),
         ("POST", f"/admin/items/{first_item_id}/unavailable"),
         ("POST", f"/admin/items/{first_item_id}/available"),
         ("PUT", f"/admin/items/{first_item_id}"),
