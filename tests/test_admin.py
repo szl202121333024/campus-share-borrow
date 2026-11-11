@@ -248,15 +248,49 @@ def _python_sources(subdir):
     return sorted((SOURCE_ROOT / subdir).glob("*.py"))
 
 
+# 注释/docstring 里提到 `grep "UPDATE items"` 只是文档，不构成一条写语句
+_DOCSTRING = re.compile(r'""".*?"""', re.S)
+
+
+def _code_without_docstrings(path):
+    return _DOCSTRING.sub("", path.read_text(encoding="utf-8"))
+
+
+def _items_status_update_statements():
+    """收集 services/ 与 routes/ 里所有 `UPDATE items` 语句（文件相对路径 + 语句）。"""
+    hits = []
+    for subdir in ("services", "routes"):
+        for path in _python_sources(subdir):
+            text = _code_without_docstrings(path)
+            for match in re.finditer(r"UPDATE\s+items[^\n]*", text, re.IGNORECASE):
+                hits.append(
+                    (f"{subdir}/{path.name}", match.group(0))
+                )
+    return hits
+
+
 def test_ac_3_1_8_source_never_writes_borrowed_into_items_status():
-    """AR-4/PC-8：items.status 的取值写入只允许 'available'/'unavailable' 字面量。"""
+    """AR-4/PC-8：items.status 的取值写入只允许 'available'/'unavailable' 字面量。
+
+    Story 3.1 时本断言要求「services/ 与 routes/ 零 UPDATE items」；Story 3.3/3.4
+    依 ADR-007 §2.1 开闸：物品状态的唯一写入者是管理员，允许的写点恰为
+    `services/admin.py` 的 `set_unavailable()` 与 `set_available()` 两处
+    （AC-3.4.5 的 grep 判据）。开闸不放宽取值集合——'borrowed' 仍零命中。
+    """
+    hits = _items_status_update_statements()
+    # AC-3.4.5：全项目 UPDATE items 恰两处，且都落在管理员服务里（借阅/归还/删除零命中）
+    assert [origin for origin, _sql in hits] == ["services/admin.py", "services/admin.py"]
+    allowed = re.compile(
+        r"UPDATE items SET status = '(available|unavailable)' WHERE id = \?"
+    )
+    for _origin, sql in hits:
+        assert allowed.search(sql), sql
+        assert "borrowed" not in sql.lower(), sql
+
+    # INSERT 路径同样不得写入 'borrowed'
     violations = []
     for path in _python_sources("services") + _python_sources("routes"):
-        text = path.read_text(encoding="utf-8")
-        # 任何 UPDATE items 都不允许出现在本故事（只增不删改）
-        if re.search(r"UPDATE\s+items", text, re.IGNORECASE):
-            violations.append(f"{path.name}: UPDATE items")
-        # INSERT INTO items 的语句里不得出现 'borrowed' 字面量
+        text = _code_without_docstrings(path)
         for match in re.finditer(
             r"INSERT\s+INTO\s+items.*?[\"']\s*(?:\)|$)", text, re.IGNORECASE | re.DOTALL
         ):
@@ -300,14 +334,14 @@ def test_d_012_admin_blueprint_guard_is_before_request_not_inline():
     assert '"role"' not in view_section
 
 
-# ---------- 只增不删改（人类裁决）：编辑/删除/停用/恢复端点在 3.1 不存在 ----------
+# ---------- 只增不删改（人类裁决）：编辑端点（含 PUT）在 v1 不存在 ----------
 
 
-def test_no_edit_or_state_change_endpoints_registered(client, app):
-    """范围哨兵（3.1 只增 + 3.2 只增删）：编辑/停用/恢复端点在 v1 不存在。
+def test_edit_endpoint_stays_unregistered_and_put_unsupported(client, app):
+    """范围哨兵：编辑功能是人类裁决砍掉的（D-007 无名称快照），永不注册。
 
-    删除端点已随 Story 3.2 注册（见 test_admin_delete.py），本哨兵继续锁死
-    「无编辑」的人类裁决与 3.3~3.4 才有的状态变更入口。
+    删除（3.2）、停用与恢复上架（3.3/3.4）已各自注册，见 test_admin_delete.py
+    与 test_admin_state.py；本哨兵只锁死「无编辑」这一条。
     """
     _login_admin(client)
     before = _items_snapshot(app)
@@ -316,12 +350,26 @@ def test_no_edit_or_state_change_endpoints_registered(client, app):
     for method, path in (
         ("GET", f"/admin/items/{first_item_id}/edit"),
         ("POST", f"/admin/items/{first_item_id}/edit"),
-        ("POST", f"/admin/items/{first_item_id}/unavailable"),
-        ("POST", f"/admin/items/{first_item_id}/available"),
         ("PUT", f"/admin/items/{first_item_id}"),
+        ("PATCH", f"/admin/items/{first_item_id}"),
     ):
         response = client.open(path, method=method)
         assert response.status_code == 404, f"{method} {path}"
+
+    assert _items_snapshot(app) == before
+
+
+def test_state_change_endpoints_reject_get(client, app):
+    """停用/恢复上架只接受 POST：地址栏 GET 不改变任何状态（PRG 写操作口径）。"""
+    _login_admin(client)
+    before = _items_snapshot(app)
+    first_item_id = before[0][0]
+
+    for path in (
+        f"/admin/items/{first_item_id}/unavailable",
+        f"/admin/items/{first_item_id}/available",
+    ):
+        assert client.get(path).status_code == 405, path
 
     assert _items_snapshot(app) == before
 

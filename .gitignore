@@ -37,6 +37,9 @@ Thumbs.db
 # Story 3.2 删除物品并发证据：双删 / 删除 vs 借阅各 20 轮
 !_bmad-output/implementation-artifacts/concurrency-story32-double-delete-20-rounds.log
 !_bmad-output/implementation-artifacts/concurrency-story32-delete-vs-borrow-20-rounds.log
+# Story 3.3 / 3.4 状态迁移幂等证据：重复停用 / 重复恢复各 20 轮并发
+!_bmad-output/implementation-artifacts/concurrency-story33-double-disable-20-rounds.log
+!_bmad-output/implementation-artifacts/concurrency-story34-double-restore-20-rounds.log
 instance/
 .pytest_cache/
 # 受限环境下的 pytest 临时根（见 pytest.ini 说明）

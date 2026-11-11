@@ -1,0 +1,25 @@
+# Story 3.4 / 并发重复恢复上架幂等真实日志  生成于 2026-11-11 19:24:18
+启动命令: python -m pytest tests/test_admin_state.py -v -k concurrent
+并发方式: threading.Barrier(2) + 2 线程 + 各自独立 Flask test_client 与会话（管理员同一账号）
+实验设定: 目标物品有 1 条未归还记录；两点同时 POST /admin/items/<id>/available
+------------------------------------------------------------------------
+round 01: a=302 b=302 | barrier 释放间隔=0.53ms | status=available
+round 02: a=302 b=302 | barrier 释放间隔=0.64ms | status=available
+round 03: a=302 b=302 | barrier 释放间隔=0.57ms | status=available
+round 04: a=302 b=302 | barrier 释放间隔=0.79ms | status=available
+round 05: a=302 b=302 | barrier 释放间隔=0.58ms | status=available
+round 06: a=302 b=302 | barrier 释放间隔=1.42ms | status=available
+round 07: a=302 b=302 | barrier 释放间隔=0.83ms | status=available
+round 08: a=302 b=302 | barrier 释放间隔=0.51ms | status=available
+round 09: a=302 b=302 | barrier 释放间隔=0.98ms | status=available
+round 10: a=302 b=302 | barrier 释放间隔=0.48ms | status=available
+round 11: a=302 b=302 | barrier 释放间隔=0.50ms | status=available
+round 12: a=302 b=302 | barrier 释放间隔=0.93ms | status=available
+round 13: a=302 b=302 | barrier 释放间隔=0.51ms | status=available
+round 14: a=302 b=302 | barrier 释放间隔=0.51ms | status=available
+round 15: a=302 b=302 | barrier 释放间隔=0.66ms | status=available
+round 16: a=302 b=302 | barrier 释放间隔=0.50ms | status=available
+round 17: a=302 b=302 | barrier 释放间隔=0.48ms | status=available
+round 18: a=302 b=302 | barrier 释放间隔=0.54ms | status=available
+round 19: a=302 b=302 | barrier 释放间隔=0.64ms | status=available
+round 20: a=302 b=302 | barrier 释放间隔=0.50ms | status=available
