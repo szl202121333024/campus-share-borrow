@@ -1,0 +1,376 @@
+# app.py —— 添加物品功能（Flask + SQLite，单文件即可运行）
+# 安装依赖: pip install flask
+# 启动:     python app.py   ->  http://127.0.0.1:5000
+import os
+import sqlite3
+from datetime import datetime
+
+from flask import (Flask, flash, g, redirect, render_template_string,
+                   request, url_for)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "inventory.db")
+
+app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-secret-key")
+
+CATEGORIES = ("电子设备", "办公用品", "工具", "耗材", "其他")
+UNITS = ("个", "台", "件", "箱", "包", "米", "公斤")
+
+MAX_QTY = 1_000_000
+MAX_PRICE = 1e9
+
+
+# ----------------------------- 数据库 -----------------------------
+def get_db():
+    if "db" not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exc):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as db:
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS items (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT    NOT NULL UNIQUE,
+                category   TEXT    NOT NULL,
+                quantity   INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+                unit       TEXT    NOT NULL DEFAULT '个',
+                price      REAL    NOT NULL DEFAULT 0 CHECK (price >= 0),
+                location   TEXT    NOT NULL DEFAULT '',
+                note       TEXT    NOT NULL DEFAULT '',
+                created_at TEXT    NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_items_created_at
+                ON items(created_at DESC);
+            """
+        )
+
+
+# ----------------------------- 表单校验 -----------------------------
+def validate_item(form):
+    """返回 (清洗后的数据, 错误字典)；两个字段名互不重叠。"""
+    raw = {
+        "name": (form.get("name") or "").strip(),
+        "category": (form.get("category") or "").strip(),
+        "quantity": (form.get("quantity") or "").strip(),
+        "unit": (form.get("unit") or "").strip(),
+        "price": (form.get("price") or "").strip(),
+        "location": (form.get("location") or "").strip(),
+        "note": (form.get("note") or "").strip(),
+    }
+    errors = {}
+
+    # 名称：必填，长度 1~50
+    if not raw["name"]:
+        errors["name"] = "物品名称不能为空"
+    elif len(raw["name"]) > 50:
+        errors["name"] = "物品名称不能超过 50 个字符"
+
+    # 分类 / 单位：必须来自白名单，防止脏数据
+    if raw["category"] not in CATEGORIES:
+        errors["category"] = "请选择有效的分类"
+    if raw["unit"] not in UNITS:
+        errors["unit"] = "请选择有效的单位"
+
+    # 数量：必填，非负整数
+    quantity = None
+    if not raw["quantity"]:
+        errors["quantity"] = "数量不能为空"
+    else:
+        try:
+            quantity = int(raw["quantity"])
+        except ValueError:
+            errors["quantity"] = "数量必须是整数"
+        else:
+            if quantity < 0 or quantity > MAX_QTY:
+                errors["quantity"] = f"数量需在 0 ~ {MAX_QTY} 之间"
+
+    # 单价：选填，非负数字
+    price = 0.0
+    if raw["price"]:
+        try:
+            price = float(raw["price"])
+        except ValueError:
+            errors["price"] = "单价必须是数字"
+        else:
+            if price < 0 or price > MAX_PRICE:
+                errors["price"] = "单价必须是 0 ~ 1000000000 之间的数字"
+
+    if len(raw["location"]) > 50:
+        errors["location"] = "存放位置不能超过 50 个字符"
+    if len(raw["note"]) > 200:
+        errors["note"] = "备注不能超过 200 个字符"
+
+    clean = {
+        "name": raw["name"],
+        "category": raw["category"],
+        "quantity": quantity,
+        "unit": raw["unit"],
+        "price": round(price, 2),
+        "location": raw["location"],
+        "note": raw["note"],
+    }
+    return clean, errors
+
+
+# ----------------------------- 页面渲染 -----------------------------
+def render_page(status=200, form=None, errors=None):
+    items = get_db().execute(
+        "SELECT * FROM items ORDER BY created_at DESC, id DESC"
+    ).fetchall()
+    return render_template_string(
+        PAGE,
+        items=items,
+        form=form or {},
+        errors=errors or {},
+        categories=CATEGORIES,
+        units=UNITS,
+        total_kinds=len(items),
+        total_qty=sum(row["quantity"] for row in items),
+        total_value=sum(row["quantity"] * row["price"] for row in items),
+    ), status
+
+
+# ----------------------------- 路由 -----------------------------
+@app.get("/")
+def index():
+    return render_page()
+
+
+@app.post("/items")
+def add_item():
+    clean, errors = validate_item(request.form)
+
+    if errors:
+        # 校验失败：回填用户输入 + 显示错误，返回 400
+        return render_page(status=400, form=request.form, errors=errors)
+
+    db = get_db()
+    try:
+        db.execute(
+            """
+            INSERT INTO items
+                (name, category, quantity, unit, price, location, note, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                clean["name"], clean["category"], clean["quantity"],
+                clean["unit"], clean["price"], clean["location"],
+                clean["note"], datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            ),
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        # name 上有 UNIQUE 约束：同名物品直接给出友好提示
+        return render_page(
+            status=400,
+            form=request.form,
+            errors={"name": "已存在同名物品，请换一个名称或直接修改数量"},
+        )
+
+    flash(f"已添加物品「{clean['name']}」× {clean['quantity']}{clean['unit']}", "success")
+    return redirect(url_for("index"))   # PRG：重定向，刷新不会重复提交
+
+
+# ----------------------------- 模板 -----------------------------
+PAGE = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>物品管理 · 添加物品</title>
+<style>
+  :root { --border:#dcdfe6; --muted:#909399; --danger:#f56c6c; --primary:#409eff; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px 16px; background:#f5f7fa; color:#303133;
+         font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; display:grid; gap:16px; }
+  .card { background:#fff; border-radius:8px; padding:20px 24px;
+          box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  h1 { font-size:18px; margin:0 0 4px; }
+  h2 { font-size:16px; margin:0 0 12px; }
+  .sub { color:var(--muted); font-size:12px; margin:0 0 16px; }
+  .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 16px; }
+  .field.full { grid-column:1 / -1; }
+  label { display:block; margin-bottom:4px; font-weight:500; }
+  label .req { color:var(--danger); }
+  input,select,textarea { width:100%; padding:8px 10px; font:inherit;
+        border:1px solid var(--border); border-radius:6px; background:#fff; }
+  input:focus,select:focus,textarea:focus { outline:none; border-color:var(--primary); }
+  textarea { resize:vertical; min-height:72px; }
+  .invalid { border-color:var(--danger) !important; }
+  .err { margin:4px 0 0; color:var(--danger); font-size:12px; }
+  .actions { margin-top:20px; display:flex; align-items:center; gap:12px; }
+  button { padding:9px 24px; font:inherit; color:#fff; background:var(--primary);
+           border:0; border-radius:6px; cursor:pointer; }
+  button:hover { filter:brightness(1.06); }
+  .hint { color:var(--muted); font-size:12px; }
+  .flash { padding:10px 14px; border-radius:6px; margin-bottom:16px; }
+  .flash.success { background:#f0f9eb; color:#67c23a; border:1px solid #e1f3d8; }
+  table { width:100%; border-collapse:collapse; }
+  th,td { padding:10px 8px; text-align:left; border-bottom:1px solid #ebeef5; }
+  th { color:var(--muted); font-weight:500; white-space:nowrap; }
+  .num { text-align:right; white-space:nowrap; }
+  .empty { padding:28px; text-align:center; color:var(--muted); }
+  .stat { color:var(--muted); font-size:12px; }
+  .stat b { color:#303133; }
+  @media (max-width:640px) { .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card">
+    <h1>添加物品</h1>
+    <p class="sub">带 <span style="color:#f56c6c">*</span> 的为必填项</p>
+
+    {% set f = form or {} %}
+    {% set e = errors or {} %}
+
+    <form method="post" action="{{ url_for('add_item') }}" novalidate>
+      <div class="grid">
+
+        <div class="field full">
+          <label for="name">物品名称 <span class="req">*</span></label>
+          <input id="name" name="name" type="text" maxlength="50"
+                 value="{{ f.get('name', '') }}"
+                 class="{{ 'invalid' if e.get('name') else '' }}"
+                 placeholder="例如：USB-C 数据线">
+          {% if e.get('name') %}<p class="err">{{ e['name'] }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="category">分类 <span class="req">*</span></label>
+          <select id="category" name="category"
+                  class="{{ 'invalid' if e.get('category') else '' }}">
+            <option value="">请选择分类</option>
+            {% for c in categories %}
+              <option value="{{ c }}" {% if f.get('category') == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+          {% if e.get('category') %}<p class="err">{{ e['category'] }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="location">存放位置</label>
+          <input id="location" name="location" type="text" maxlength="50"
+                 value="{{ f.get('location', '') }}"
+                 class="{{ 'invalid' if e.get('location') else '' }}"
+                 placeholder="例如：A 架 3 层">
+          {% if e.get('location') %}<p class="err">{{ e['location'] }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="quantity">数量 <span class="req">*</span></label>
+          <input id="quantity" name="quantity" type="number" min="0" step="1"
+                 value="{{ f.get('quantity', '') }}"
+                 class="{{ 'invalid' if e.get('quantity') else '' }}"
+                 placeholder="0">
+          {% if e.get('quantity') %}<p class="err">{{ e['quantity'] }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="unit">单位 <span class="req">*</span></label>
+          <select id="unit" name="unit"
+                  class="{{ 'invalid' if e.get('unit') else '' }}">
+            {% for u in units %}
+              <option value="{{ u }}" {% if f.get('unit', '个') == u %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+          </select>
+          {% if e.get('unit') %}<p class="err">{{ e['unit'] }}</p>{% endif %}
+        </div>
+
+        <div class="field">
+          <label for="price">单价（元）</label>
+          <input id="price" name="price" type="number" min="0" step="0.01"
+                 value="{{ f.get('price', '') }}"
+                 class="{{ 'invalid' if e.get('price') else '' }}"
+                 placeholder="0.00">
+          {% if e.get('price') %}<p class="err">{{ e['price'] }}</p>{% endif %}
+        </div>
+
+        <div class="field full">
+          <label for="note">备注</label>
+          <textarea id="note" name="note" maxlength="200"
+                    class="{{ 'invalid' if e.get('note') else '' }}"
+                    placeholder="选填，最多 200 字">{{ f.get('note', '') }}</textarea>
+          {% if e.get('note') %}<p class="err">{{ e['note'] }}</p>{% endif %}
+        </div>
+
+      </div>
+
+      <div class="actions">
+        <button type="submit">保存物品</button>
+        <span class="hint">保存后自动回到列表，刷新页面不会重复提交</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>物品列表</h2>
+    <p class="stat">
+      共 <b>{{ total_kinds }}</b> 种物品 ·
+      总数量 <b>{{ total_qty }}</b> ·
+      总价值 <b>¥{{ '%.2f'|format(total_value) }}</b>
+    </p>
+
+    {% if items %}
+    <table>
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>分类</th>
+          <th class="num">数量</th>
+          <th class="num">单价</th>
+          <th>存放位置</th>
+          <th>备注</th>
+          <th>添加时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in items %}
+        <tr>
+          <td>{{ row['name'] }}</td>
+          <td>{{ row['category'] }}</td>
+          <td class="num">{{ row['quantity'] }} {{ row['unit'] }}</td>
+          <td class="num">¥{{ '%.2f'|format(row['price']) }}</td>
+          <td>{{ row['location'] or '—' }}</td>
+          <td>{{ row['note'] or '—' }}</td>
+          <td>{{ row['created_at'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty">还没有物品，先在上面的表单里添加一个吧。</div>
+    {% endif %}
+  </div>
+
+</div>
+</body>
+</html>
+"""
+
+
+if __name__ == "__main__":
+    init_db()
+    app.run(host="127.0.0.1", port=5000, debug=True)
