@@ -114,3 +114,23 @@ This file tracks work items that were identified during implementation but defer
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-delete-item.md`
   summary: 并发证据日志被每次测试重写（累计五份）
   evidence: 沿用 Story 2.5 的延期项；Story 3.2 新增 concurrency-story32-double-delete-20-rounds.log 与 concurrency-story32-delete-vs-borrow-20-rounds.log，两份均由用例无条件覆写。项目收尾时与 nfr11/nfr12/nfr13 一并改为「已存在则不覆盖」。
+
+---
+
+## Story 3.3 / 3.4: 物品停用与恢复上架（D-005 + ADR-007）
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
+  summary: CSRF 保护（POST /admin/items/<id>/unavailable 与 /available）
+  evidence: 沿用 Story 1.2 起已裁决的延期口径（PRD §6 明确不做）。两条状态迁移写路径同样不带 CSRF token；v1 局域网单人演示场景接受该风险，记录不阻塞。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
+  summary: 停用/恢复无二次确认，操作列按钮不预告后果
+  evidence: PRD §4.6 明确「停用是可逆的，误停用不需要救」，故不设确认页（与删除的破坏性操作刻意区别对待）。管理列表只渲染动作按钮、不复制业务判定（PC-1）；「停用后借阅者仍可归还」的说明由 README 与本 spec 承担，不在列表页做提示文案。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
+  summary: AC-3.4.4~3.4.7（四态组合矩阵、NFR-1.4 并发交叉比对）留在 Story 3.4 收口
+  evidence: 本故事已交付两条端点与 AC-3.4.5 的 grep 判据（`UPDATE items` 恰两处），但四态组合（available / 在借 / unavailable / unavailable+在借）的逐组合渲染断言、`/my-loans` 四态、以及并发借阅后「列表派生态 ⇔ loans 未归还计数」的交叉比对仍属 Story 3.4 的回归范围，未提前合并进本故事。
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-disable-item-and-restore.md`
+  summary: 并发证据日志被每次测试重写（累计七份）
+  evidence: 沿用 Story 2.5/3.2 的延期项；本故事新增 concurrency-story33-double-disable-20-rounds.log 与 concurrency-story34-double-restore-20-rounds.log（`.gitignore` 已加白名单）。项目收尾时与既有五份一并改为「已存在则不覆盖」。
