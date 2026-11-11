@@ -1,25 +1,25 @@
-# Story 3.3 / 并发重复停用幂等真实日志  生成于 2026-11-11 19:24:03
+# Story 3.3 / 并发重复停用幂等真实日志  生成于 2026-11-11 19:29:08
 启动命令: python -m pytest tests/test_admin_state.py -v -k concurrent
 并发方式: threading.Barrier(2) + 2 线程 + 各自独立 Flask test_client 与会话（管理员同一账号）
 实验设定: 目标物品有 1 条未归还记录；两点同时 POST /admin/items/<id>/unavailable
 ------------------------------------------------------------------------
-round 01: a=302 b=302 | barrier 释放间隔=0.45ms | status=unavailable
-round 02: a=302 b=302 | barrier 释放间隔=0.51ms | status=unavailable
-round 03: a=302 b=302 | barrier 释放间隔=2.36ms | status=unavailable
-round 04: a=302 b=302 | barrier 释放间隔=0.53ms | status=unavailable
-round 05: a=302 b=302 | barrier 释放间隔=0.82ms | status=unavailable
-round 06: a=302 b=302 | barrier 释放间隔=0.47ms | status=unavailable
-round 07: a=302 b=302 | barrier 释放间隔=0.65ms | status=unavailable
-round 08: a=302 b=302 | barrier 释放间隔=1.14ms | status=unavailable
-round 09: a=302 b=302 | barrier 释放间隔=0.84ms | status=unavailable
-round 10: a=302 b=302 | barrier 释放间隔=0.51ms | status=unavailable
-round 11: a=302 b=302 | barrier 释放间隔=1.40ms | status=unavailable
-round 12: a=302 b=302 | barrier 释放间隔=0.54ms | status=unavailable
-round 13: a=302 b=302 | barrier 释放间隔=0.51ms | status=unavailable
-round 14: a=302 b=302 | barrier 释放间隔=0.76ms | status=unavailable
-round 15: a=302 b=302 | barrier 释放间隔=0.57ms | status=unavailable
-round 16: a=302 b=302 | barrier 释放间隔=0.61ms | status=unavailable
-round 17: a=302 b=302 | barrier 释放间隔=0.45ms | status=unavailable
-round 18: a=302 b=302 | barrier 释放间隔=0.50ms | status=unavailable
-round 19: a=302 b=302 | barrier 释放间隔=0.58ms | status=unavailable
-round 20: a=302 b=302 | barrier 释放间隔=1.00ms | status=unavailable
+round 01: a=302 b=302 | barrier 释放间隔=0.49ms | status=unavailable
+round 02: a=302 b=302 | barrier 释放间隔=1.30ms | status=unavailable
+round 03: a=302 b=302 | barrier 释放间隔=0.49ms | status=unavailable
+round 04: a=302 b=302 | barrier 释放间隔=0.55ms | status=unavailable
+round 05: a=302 b=302 | barrier 释放间隔=0.46ms | status=unavailable
+round 06: a=302 b=302 | barrier 释放间隔=0.56ms | status=unavailable
+round 07: a=302 b=302 | barrier 释放间隔=0.59ms | status=unavailable
+round 08: a=302 b=302 | barrier 释放间隔=0.45ms | status=unavailable
+round 09: a=302 b=302 | barrier 释放间隔=0.55ms | status=unavailable
+round 10: a=302 b=302 | barrier 释放间隔=0.77ms | status=unavailable
+round 11: a=302 b=302 | barrier 释放间隔=0.59ms | status=unavailable
+round 12: a=302 b=302 | barrier 释放间隔=0.79ms | status=unavailable
+round 13: a=302 b=302 | barrier 释放间隔=0.49ms | status=unavailable
+round 14: a=302 b=302 | barrier 释放间隔=0.56ms | status=unavailable
+round 15: a=302 b=302 | barrier 释放间隔=0.58ms | status=unavailable
+round 16: a=302 b=302 | barrier 释放间隔=0.58ms | status=unavailable
+round 17: a=302 b=302 | barrier 释放间隔=0.50ms | status=unavailable
+round 18: a=302 b=302 | barrier 释放间隔=0.64ms | status=unavailable
+round 19: a=302 b=302 | barrier 释放间隔=1.05ms | status=unavailable
+round 20: a=302 b=302 | barrier 释放间隔=0.52ms | status=unavailable
