@@ -1,17 +1,17 @@
-"""管理蓝图（Story 3.1 新增与列表 + Story 3.2 删除，FR-6）。
+"""管理蓝图（Story 3.1 新增与列表 + 3.2 删除 + 3.3 停用 + 3.4 恢复上架，FR-6）。
 
 权限边界（D-012、D-026、PC-10）——蓝图级统一拦截，全库唯一的 role 授权判定点：
 - bp = Blueprint(..., url_prefix="/admin")：守卫与路由同前缀，物理上不会漏挂；
-- @bp.before_request：进入本蓝图的任何请求（含 Story 3.2 的确认页与删除 POST、
-  未来 3.3~3.4 的停用/恢复）先过这里——未登录 302 → /login?next=，
+- @bp.before_request：进入本蓝图的任何请求（含 3.2 的确认页与删除 POST、
+  3.3/3.4 的停用与恢复上架）先过这里——未登录 302 → /login?next=，
   非管理员 403 FORBIDDEN。业务代码（路由体与 services/）内不得再出现
   任何 role 判断；
 - routes/auth.py 的全站守卫只保留 /admin 前缀的「未登录 302」（认证拦截），
   不含任何 role 分支——授权语义只在本文件成立一处。
 
 路由只做三件事：收集参数 → 调 services → 渲染/映射异常（PC-1）。
-v1 无编辑功能（人类裁决「只增不删改」中的改名禁令，见 services/admin.py）；
-停用/恢复属 Story 3.3~3.4。
+v1 无编辑功能（人类裁决「只增不删改」中的改名禁令，见 services/admin.py）。
+物品状态的全部写入口就是本文件的停用与恢复上架两条路由（ADR-007 §2.1）。
 """
 
 from flask import (
@@ -24,7 +24,14 @@ from flask import (
 )
 
 from config import BizError
-from services.admin import CATEGORIES, create_item, delete_item, get_item
+from services.admin import (
+    CATEGORIES,
+    create_item,
+    delete_item,
+    get_item,
+    set_available,
+    set_unavailable,
+)
 from services.auth import load_current_user
 from services.items import list_items_with_state
 
@@ -75,4 +82,23 @@ def delete_item_view(item_id):
     """删除物品（Story 3.2）：409/404 由服务层抛 BizError 统一映射（PC-9）。"""
     delete_item(item_id)
     flash("已删除")
+    return redirect(url_for("admin.admin_items"))
+
+
+@bp.post("/items/<int:item_id>/unavailable")
+def set_unavailable_view(item_id):
+    """停用物品（Story 3.3）：任何状态下都允许，重复停用幂等 302（AC-3.3.1/3.3.4）。
+
+    只接受 POST（PRG，PC-9）；直接在地址栏 GET 该路径不会改变任何状态。
+    """
+    set_unavailable(item_id)
+    flash("已停用")
+    return redirect(url_for("admin.admin_items"))
+
+
+@bp.post("/items/<int:item_id>/available")
+def set_available_view(item_id):
+    """恢复上架（Story 3.4）：幂等 302，只改存储态，不改任何借阅事实（AC-3.4.1/3.4.2）。"""
+    set_available(item_id)
+    flash("已恢复上架")
     return redirect(url_for("admin.admin_items"))
